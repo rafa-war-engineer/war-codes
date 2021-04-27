@@ -1,0 +1,14 @@
+
+body {
+  font-size: 22px;
+  font-family: Angkor;
+  width: 50%;
+  background-color: #f2f2f2;
+  position: absolute;
+  left: 25%;
+}
+
+h1 {
+  font-size: 2.5rem;
+  text-align: center;
+}
