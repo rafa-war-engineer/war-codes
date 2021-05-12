@@ -12,6 +12,7 @@
  *
  */
 /////////////################# headers #####################////////////////
+
 #include <Arduino.h>
 //#include <RTClib.h>
 #include <Wire.h>
@@ -33,6 +34,7 @@
 //#include "soc/timer_group_reg.h"
 #include "WeatherStat_NTP.h"
 #include "WeatherStat_BlynkApp.h"
+#include "CO2_sensor.h"
 //#include <DS3231.h>
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
@@ -69,6 +71,8 @@ void myTimerEvent(void);
 /////////////################# Web Specific #####################///////
 char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
 char *password = "07225443701792235194";  // replace with your Password
+//char *ssid = "Vodafone-FC6F = FRITZ!Box 6591 Cable BE";          // replace with your SSID/char *password = "07225443701792235194";  // replace with your Password";          // replace with your SSID
+//char *password = "pW6298625330626571";  // replace with your Password
 AsyncWebServer server(80);
 /////////////################# NTP Client Specific #####################///////
 const char* ntpServer = "pool.ntp.org";
@@ -76,9 +80,14 @@ const long gmtOffset_sec = 3600;  //Germany is GMT +1, expressed in seconds
 const int daylightOffset_sec = 3600;   // There is one extra hour in DST
 /////////////################# Blynk  config ###################///////
 char auth[] = "DZJ5YStEBLYrOid9YuJH-Qm3QDPuy-Oe";    // token from the app
-BlynkTimer timer;                                    // data request on app time
+BlynkTimer timer;
+                             // data request on app time
 /////////////################# Blynk  variables ###################///////
 iaq_level property; // define the structure property for iaq level of the app
+/////////////################# CO2_sensor  config ###################///////
+
+/////////////################# CO2_sensor ###################///////
+
 /////////////################# Arduino sh%& #####################///////////////
 TaskHandle_t Task2;
 TaskHandle_t Task1;
@@ -124,6 +133,8 @@ void setup() {
 ////// Blink begin config
         Blynk.begin(auth, ssid, password);
         timer.setInterval(1000L, myTimerEvent);
+////// Config for readding CO2_sensor
+        pinMode(MHZ19_PWM_PIN, INPUT);        //MHZ19 PWM Pin als Eingang konfigurieren
 /////Initialize BME680 Sensor
         configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
@@ -389,12 +400,13 @@ void updateState(void)
 /////////////################# Load variables to the app  #####################////////////////
 void myTimerEvent()
 {
-        property = get_properties_for_iaq_level(iaqSensor.iaq); // gets correspondig led color, led intensity and iaq description
-        Blynk.virtualWrite(V34,iaqSensor.temperature); // sends temperature to chart of the app
-        Blynk.virtualWrite(V25,iaqSensor.temperature);  //sends temperature to numerical display of the app
-        Blynk.virtualWrite(V33,press_web);              //sends pressure to the Blynk_App_Asistent
-        Blynk.virtualWrite(V32,iaqSensor.humidity);     //sends humidity
-        Blynk.virtualWrite(V31,iaqSensor.co2Equivalent);                      // sends co2 estimate
+
+        property = get_properties_for_iaq_level(iaqSensor.iaq);               // gets correspondig led color, led intensity and iaq description
+        Blynk.virtualWrite(V34,iaqSensor.temperature);                        // sends temperature to chart of the app
+        Blynk.virtualWrite(V25,iaqSensor.temperature);                        //sends temperature to numerical display of the app
+        Blynk.virtualWrite(V33,press_web);                                    //sends pressure to the Blynk_App_Asistent
+        Blynk.virtualWrite(V32,iaqSensor.humidity);                           //sends humidity
+        Blynk.virtualWrite(V31,get_CO2_measure(iaqSensor.co2Equivalent));     // sends co2 estimate or meassuerement
         Blynk.virtualWrite(V30,iaqSensor.gasPercentageAcccuracy);             // sents gas percentage
         Blynk.virtualWrite(V28,iaqSensor.iaq);                                //sends iaq vale
         Blynk.virtualWrite(V29,iaq_to_percentage(iaqSensor.iaqAccuracy));     //sends iaq accuracy
@@ -403,6 +415,9 @@ void myTimerEvent()
         Blynk.virtualWrite(V26,property.iaq_level_description);               //sends iaq description
         Blynk.virtualWrite(V24,getZeit());                                    // sends time
         Blynk.virtualWrite(V23,getDatum(IN_NUMBERS));                         //sends date
+
+        // and the engineer saw that the code..
+        //                                                ... was good...
 }//
 //
 /////////////################# funciton  #####################////////////////
