@@ -6,8 +6,8 @@
  * @Date:   2021-27-04
  * @Email:  rafael.aranda@alumni.fh-aachen.de
  * @Filename: main.cpp
- * @Last modified by:   rafa
- * @Last modified time: 2021-27-04
+ * @Last modified by:   daniel
+ * @Last modified time: 2021-05-14T18:31:49+02:00
  * @License: CC by-sa
  *
  */
@@ -47,7 +47,7 @@ int i = 0;
 char flag=0;
 boolean flag_inter_loop=false;
 //const char * intro = "Time[ms],r_t[°C],p[hPa],r_hum[%],gas[Ohm],IAQ,IAQacc,temp[°C],h[%],S_IAQ,CO2_equ,bre_VOC,Gas%";
-const char * intro = "Time[ms],p[hPa],gas[Ohm],IAQ,IAQacc,temp[°C],h[%],S_IAQ,CO2_equ,bre_VOC,Gas%";
+const char * intro = "Time[ms],p[hPa],gas[Ohm],IAQ,IAQacc,temp[°C],h[%],S_IAQ,CO2_equ,CO2,bre_VOC,Gas%";
 uint8_t bsec_config_iaq[] = {
 #include "config/generic_33v_3s_4d/bsec_iaq.txt"
 };
@@ -237,6 +237,7 @@ void loop2(void *parameter) {
                         output += ", " + hum_web;
                         output += ", " + String(iaqSensor.staticIaq);
                         output += ", " + String(iaqSensor.co2Equivalent);
+                        output += ", " + String(get_CO2_measure());
                         output += ", " + String(iaqSensor.breathVocEquivalent);
                         output += ", " + String(iaqSensor.gasPercentage);
 
