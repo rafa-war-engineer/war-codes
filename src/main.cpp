@@ -406,7 +406,7 @@ void myTimerEvent()
         Blynk.virtualWrite(V25,iaqSensor.temperature);                        //sends temperature to numerical display of the app
         Blynk.virtualWrite(V33,press_web);                                    //sends pressure to the Blynk_App_Asistent
         Blynk.virtualWrite(V32,iaqSensor.humidity);                           //sends humidity
-        Blynk.virtualWrite(V31,get_CO2_measure(iaqSensor.co2Equivalent));     // sends co2 estimate or meassuerement
+        Blynk.virtualWrite(V31,get_CO2_measure());                            // sends co2 estimate or meassuerement
         Blynk.virtualWrite(V30,iaqSensor.gasPercentageAcccuracy);             // sents gas percentage
         Blynk.virtualWrite(V28,iaqSensor.iaq);                                //sends iaq vale
         Blynk.virtualWrite(V29,iaq_to_percentage(iaqSensor.iaqAccuracy));     //sends iaq accuracy

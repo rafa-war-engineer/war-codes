@@ -17,7 +17,7 @@
  unsigned long difference_mesured_estimated =0;
 
 ///////////////////////////////        funtion to conver the measure of acurracy from 0 to 4 to a percentage from 0 to 100/////////////////////////////////////////////////
-int get_CO2_measure(int co2_estimated){
+int get_CO2_measure(){
 
   timeHigh = pulseIn(MHZ19_PWM_PIN, HIGH, 2500000);             // Alle Zeiten in Mikrosekunden
   timeLow = pulseIn(MHZ19_PWM_PIN, LOW, 2500000);
@@ -32,11 +32,7 @@ int get_CO2_measure(int co2_estimated){
   // .. erst durch die Multiplaktion mit dem Messbereich erhält man den absoluten Messwert.
   int CO2_measured = MHZ19_MAX_PPM * pulseHighRatio;
 
-  if(CO2_measured>=co2_estimated){difference_mesured_estimated =CO2_measured-co2_estimated;}
-  else{difference_mesured_estimated =co2_estimated-CO2_measured;}
-
-  if(difference_mesured_estimated <= threshold_mesured_estimated){return(CO2_measured);}
-  else{return(CO2_measured);}
+  return(CO2_measured);
 
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
