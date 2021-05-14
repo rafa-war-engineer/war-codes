@@ -34,7 +34,7 @@
 //#include "soc/timer_group_reg.h"
 #include "WeatherStat_NTP.h"
 #include "WeatherStat_BlynkApp.h"
-#include "CO2_sensor.h"
+#include "WeatherStat_CO2sensor.h"
 //#include <DS3231.h>
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11

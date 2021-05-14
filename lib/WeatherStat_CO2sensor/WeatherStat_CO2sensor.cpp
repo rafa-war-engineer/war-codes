@@ -9,7 +9,7 @@
  */
 
  #include <Arduino.h>                       // tipical arduino bakärei
- #include "CO2_sensor.h"                    // name from the library created also known als Brötchen des Tages
+ #include "WeatherStat_CO2sensor.h"                    // name from the library created also known als Brötchen des Tages
  #include "time.h"                          // time library for some reason
  unsigned long timeHigh;
  unsigned long timeLow;

@@ -31,8 +31,8 @@
 //               iaq_level q;
 //
 /////////////////////// end of tutortial WeatherStat_BlynkApp_h ////////////////////////////////////////////////////////////////////////////////////
-#ifndef CO2_sensor_h //This goes allways Luke
-#define CO2_sensor_h // this also
+#ifndef WeatherStat_CO2sensor_h //This goes allways Luke
+#define WeatherStat_CO2sensor_h // this also
 #include <Arduino.h>      // that one is optional in the .h i think
 // difinitions for the ESP32 regarding the C02_sensor for the library
 #define MHZ19_PWM_PIN 34                // PWM Pin des MHZ19
