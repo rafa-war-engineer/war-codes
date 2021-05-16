@@ -7,7 +7,7 @@
  * @Email:  rafael.aranda@alumni.fh-aachen.de
  * @Filename: main.cpp
  * @Last modified by:   daniel
- * @Last modified time: 2021-05-14T18:31:49+02:00
+ * @Last modified time: 2021-05-17T00:32:05+02:00
  * @License: CC by-sa
  *
  */
@@ -47,7 +47,7 @@ int i = 0;
 char flag=0;
 boolean flag_inter_loop=false;
 //const char * intro = "Time[ms],r_t[°C],p[hPa],r_hum[%],gas[Ohm],IAQ,IAQacc,temp[°C],h[%],S_IAQ,CO2_equ,bre_VOC,Gas%";
-const char * intro = "Time[ms],p[hPa],gas[Ohm],IAQ,IAQacc,temp[°C],h[%],S_IAQ,CO2_equ,CO2,bre_VOC,Gas%";
+const char * intro = "Time[ms],p[hPa],gas[Ohm],IAQ,temp[°C],h[%],CO2_equ,CO2,bre_VOC,Gas%,stabSta,runInSta";
 uint8_t bsec_config_iaq[] = {
 #include "config/generic_33v_3s_4d/bsec_iaq.txt"
 };
@@ -69,8 +69,10 @@ void updateState(void);
 void myTimerEvent(void);
 /////////////################# handlers definition #####################///////
 /////////////################# Web Specific #####################///////
-char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
-char *password = "07225443701792235194";  // replace with your Password
+ char *ssid = "FRITZ!Box 6591 Cable SW";         // replace with your SSID
+ char *password = "62407078731195560963";
+// char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
+// char *password = "07225443701792235194";  // replace with your Password
 //char *ssid = "Vodafone-FC6F = FRITZ!Box 6591 Cable BE";          // replace with your SSID/char *password = "07225443701792235194";  // replace with your Password";          // replace with your SSID
 //char *password = "pW6298625330626571";  // replace with your Password
 AsyncWebServer server(80);
@@ -148,17 +150,19 @@ void setup() {
         loadState();
 
         bsec_virtual_sensor_t sensorList[Number_susc_sens] = {
-                BSEC_OUTPUT_RAW_TEMPERATURE,
-                BSEC_OUTPUT_RAW_PRESSURE,
-                BSEC_OUTPUT_RAW_HUMIDITY,
-                BSEC_OUTPUT_RAW_GAS,
-                BSEC_OUTPUT_IAQ,
-                BSEC_OUTPUT_STATIC_IAQ,
-                BSEC_OUTPUT_CO2_EQUIVALENT,
-                BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
-                BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
-                BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
-                BSEC_OUTPUT_GAS_PERCENTAGE
+                //BSEC_OUTPUT_RAW_TEMPERATURE,//Temperature directly measured by BME680 in degree Celsius.
+                BSEC_OUTPUT_RAW_PRESSURE,//Pressure directly measured by the BME680 in Pa.
+                //BSEC_OUTPUT_RAW_HUMIDITY,//Relative humidity directly measured by the BME680 in %.
+                BSEC_OUTPUT_RAW_GAS,//Gas resistance measured directly by the BME680 in Ohm.The resistance value changes due to varying VOC concentrations
+                BSEC_OUTPUT_IAQ,//During operation, algorithms automatically calibrate and adapt themselves to the typical environments where the sensor is operated (e.g., home, workplace, inside a car, etc.).This automatic background calibration ensures that users experience consistent IAQ performance. The calibration process considers the recent measurement history
+                BSEC_OUTPUT_STATIC_IAQ,/*!<“Static” Index for Air Quality, especially recommended for stationary devices (w/ o auto-trimming algorithm) */
+                BSEC_OUTPUT_CO2_EQUIVALENT,//Estimation of the CO2 level in ppm.
+                BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,//Conversion into breath-VOC equivalents in ppm concentration.
+                BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,//Temperature which is compensated for internal cross- influences caused by the BME sensor
+                BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,//Relative humidity which is compensated for internal cross- influences caused by the BME sensor
+                BSEC_OUTPUT_GAS_PERCENTAGE,/*Alternative indicator for air pollution which rates the current raw gas sensor resistance value based on the individual sensor history:*/
+                BSEC_OUTPUT_STABILIZATION_STATUS,//Indicates if the sensor is undergoing initial stabilization during its first use after production
+                BSEC_OUTPUT_RUN_IN_STATUS//Indicates when the sensor is ready after switch-on
         };
         iaqSensor.updateSubscription(sensorList, Number_susc_sens, BSEC_SAMPLE_RATE_LP);
         checkIaqSensorStatus();
@@ -230,21 +234,35 @@ void loop2(void *parameter) {
                         output += ", " + String(iaqSensor.gasResistance);
                         iaq_web = String(iaqSensor.iaq);
                         output += ", " + iaq_web;
-                        output += ", " + String(iaqSensor.iaqAccuracy);
+                        //output += ", " + String(iaqSensor.iaqAccuracy);
                         tempe_web = String(iaqSensor.temperature);
                         output += ", " + tempe_web;
                         hum_web = String(iaqSensor.humidity);
                         output += ", " + hum_web;
-                        output += ", " + String(iaqSensor.staticIaq);
+                        //output += ", " + String(iaqSensor.staticIaq);
                         output += ", " + String(iaqSensor.co2Equivalent);
                         output += ", " + String(get_CO2_measure());
                         output += ", " + String(iaqSensor.breathVocEquivalent);
                         output += ", " + String(iaqSensor.gasPercentage);
+                        output += ", " + String(iaqSensor.stabStatus);
+                        output += ", " + String(iaqSensor.runInStatus);
 
                         Serial.println( getDatum(IN_NUMBERS) );
                         //Serial.println(getMonat());//Check the month
                         Serial.println(intro);
                         Serial.println(output);
+                        Serial.print("IAQ="+String(iaqSensor.iaq));
+                        Serial.println(" IAQ Accuracy="+String(iaqSensor.iaqAccuracy));
+                        Serial.print("IAQ_Static="+String(iaqSensor.staticIaq));
+                        Serial.println(" IAQ_Static Accuracy="+String(iaqSensor.staticIaqAccuracy));
+                        Serial.print("co2 = "+String(iaqSensor.co2Equivalent)+" ppm");
+                        Serial.println(" co2 Accuracy = "+String(iaqSensor.co2Accuracy));
+                        Serial.print("breath-VOC = "+String(iaqSensor.breathVocEquivalent)+" ppm");
+                        Serial.println(" breath-VOC Accuracy = "+String(iaqSensor.breathVocAccuracy));
+                        // Serial.print("compGasValue = "+String(iaqSensor.compGasValue)+" ppm");
+                        // Serial.println(" compGasValue Accuracy = "+String(iaqSensor.compGasAccuracy));
+                        Serial.print("Gas Percent = "+String(iaqSensor.gasPercentage)+" ppm");
+                        Serial.println(" Gas Percent Accuracy = "+String(iaqSensor.gasPercentageAcccuracy));
                         Serial.println(' ');
                         updateState();
 
