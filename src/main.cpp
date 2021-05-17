@@ -7,7 +7,7 @@
  * @Email:  rafael.aranda@alumni.fh-aachen.de
  * @Filename: main.cpp
  * @Last modified by:   daniel
- * @Last modified time: 2021-05-17T00:32:05+02:00
+ * @Last modified time: 2021-05-17T12:35:23+02:00
  * @License: CC by-sa
  *
  */
@@ -35,6 +35,7 @@
 #include "WeatherStat_NTP.h"
 #include "WeatherStat_BlynkApp.h"
 #include "WeatherStat_CO2sensor.h"
+#include "WeatherStat_Messages.h"
 //#include <DS3231.h>
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
@@ -205,8 +206,7 @@ void setup() {
 }
 /////////////################# LOOP Executed in Core 0 #####################////////////////
 void loop2(void *parameter) {
-  #define IN_NUMBERS 1
-  #define IN_LETTERS 2
+
         while(1) {
                 yield();
                 Blynk.run(); // run code of the app
@@ -232,7 +232,9 @@ void loop2(void *parameter) {
                         output += ", " + press_web;
                         //output += ", " + String(iaqSensor.rawHumidity);
                         output += ", " + String(iaqSensor.gasResistance);
-                        iaq_web = String(iaqSensor.iaq);
+                        int numberIAQ = iaqSensor.iaq;
+                        int numberIAQAcc = iaqSensor.iaqAccuracy;
+                        iaq_web = String(numberIAQ);
                         output += ", " + iaq_web;
                         //output += ", " + String(iaqSensor.iaqAccuracy);
                         tempe_web = String(iaqSensor.temperature);
@@ -241,7 +243,8 @@ void loop2(void *parameter) {
                         output += ", " + hum_web;
                         //output += ", " + String(iaqSensor.staticIaq);
                         output += ", " + String(iaqSensor.co2Equivalent);
-                        output += ", " + String(get_CO2_measure());
+                        //output += ", " + String(get_CO2_measure());
+                        output += ", ";
                         output += ", " + String(iaqSensor.breathVocEquivalent);
                         output += ", " + String(iaqSensor.gasPercentage);
                         output += ", " + String(iaqSensor.stabStatus);
@@ -251,10 +254,18 @@ void loop2(void *parameter) {
                         //Serial.println(getMonat());//Check the month
                         Serial.println(intro);
                         Serial.println(output);
-                        Serial.print("IAQ="+String(iaqSensor.iaq));
-                        Serial.println(" IAQ Accuracy="+String(iaqSensor.iaqAccuracy));
+                        Serial.println("Status: "+String( messages_runin_stat[(int)iaqSensor.runInStatus] ));
+                        Serial.println("IAQ = "+String(numberIAQ));
+                        Serial.println( messages_quality[iaq_Index2Level(numberIAQ)]);
+                        Serial.print(" Impact: ");
+                        Serial.println(messages_impact[iaq_Index2Level(numberIAQ)]);
+                        Serial.print(" Suggested action: ");
+                        Serial.println(messages_saction[iaq_Index2Level(numberIAQ)]);
+                        Serial.println("IAQ Accuracy = "+String(numberIAQAcc));
+                        Serial.println(messages_accuracy[numberIAQAcc]);
                         Serial.print("IAQ_Static="+String(iaqSensor.staticIaq));
                         Serial.println(" IAQ_Static Accuracy="+String(iaqSensor.staticIaqAccuracy));
+
                         Serial.print("co2 = "+String(iaqSensor.co2Equivalent)+" ppm");
                         Serial.println(" co2 Accuracy = "+String(iaqSensor.co2Accuracy));
                         Serial.print("breath-VOC = "+String(iaqSensor.breathVocEquivalent)+" ppm");
