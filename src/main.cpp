@@ -7,7 +7,7 @@
  * @Email:  rafael.aranda@alumni.fh-aachen.de
  * @Filename: main.cpp
  * @Last modified by:   daniel
- * @Last modified time: 2021-05-17T12:35:23+02:00
+ * @Last modified time: 2021-05-17T12:41:25+02:00
  * @License: CC by-sa
  *
  */
@@ -256,6 +256,7 @@ void loop2(void *parameter) {
                         Serial.println(output);
                         Serial.println("Status: "+String( messages_runin_stat[(int)iaqSensor.runInStatus] ));
                         Serial.println("IAQ = "+String(numberIAQ));
+                        Serial.print(" Quality: ");
                         Serial.println( messages_quality[iaq_Index2Level(numberIAQ)]);
                         Serial.print(" Impact: ");
                         Serial.println(messages_impact[iaq_Index2Level(numberIAQ)]);
@@ -263,8 +264,8 @@ void loop2(void *parameter) {
                         Serial.println(messages_saction[iaq_Index2Level(numberIAQ)]);
                         Serial.println("IAQ Accuracy = "+String(numberIAQAcc));
                         Serial.println(messages_accuracy[numberIAQAcc]);
-                        Serial.print("IAQ_Static="+String(iaqSensor.staticIaq));
-                        Serial.println(" IAQ_Static Accuracy="+String(iaqSensor.staticIaqAccuracy));
+                        Serial.print("IAQ_Static = "+String(iaqSensor.staticIaq));
+                        Serial.println(" IAQ_Static Accuracy = "+String(iaqSensor.staticIaqAccuracy));
 
                         Serial.print("co2 = "+String(iaqSensor.co2Equivalent)+" ppm");
                         Serial.println(" co2 Accuracy = "+String(iaqSensor.co2Accuracy));
@@ -272,7 +273,7 @@ void loop2(void *parameter) {
                         Serial.println(" breath-VOC Accuracy = "+String(iaqSensor.breathVocAccuracy));
                         // Serial.print("compGasValue = "+String(iaqSensor.compGasValue)+" ppm");
                         // Serial.println(" compGasValue Accuracy = "+String(iaqSensor.compGasAccuracy));
-                        Serial.print("Gas Percent = "+String(iaqSensor.gasPercentage)+" ppm");
+                        Serial.print("Gas Percent = "+String(iaqSensor.gasPercentage)+" %");
                         Serial.println(" Gas Percent Accuracy = "+String(iaqSensor.gasPercentageAcccuracy));
                         Serial.println(' ');
                         updateState();
