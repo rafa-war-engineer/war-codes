@@ -4,7 +4,7 @@
  * @Email:  daniel.murrieta-alvarez@alumni.fh-aachen.de
  * @Filename: RoboMowerTime.h
  * @Last modified by:   daniel
- * @Last modified time: 2021-03-19T02:18:12+01:00
+ * @Last modified time: 2021-05-17T12:33:00+02:00
  * @License: CC by-sa
  */
 
