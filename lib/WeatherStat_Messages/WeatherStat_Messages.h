@@ -62,8 +62,8 @@ char *messages_accuracy [] = {
 };
 
 char *messages_runin_stat[] = {
-  "Power-on stabilization ongoing",
-  "Power-on stabilization finished"
+  " Power-on stabilization ongoing",
+  " Power-on stabilization finished"
 };
 
 char *messages_stab_stat[] = {
