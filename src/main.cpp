@@ -218,7 +218,7 @@ void loop2(void *parameter) {
                 if (iaqSensor.run()) {   // If new data is available
                         dataSensorRequest();
                         JsonStringFormat();
-                        Serial.println(cadena_envio);
+                        //&Serial.println(cadena_envio);
                         // output = dateString;
                         // output += ", " + String(varPres/100);
                         // output += ", " + String(varGasR);
