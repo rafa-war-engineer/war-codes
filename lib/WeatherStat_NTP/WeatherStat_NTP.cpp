@@ -24,9 +24,9 @@ String getZeit(){
                 if(struct_time_ntp.tm_hour < 10) out="0";
                 out += String(struct_time_ntp.tm_hour)+":";
                 if(struct_time_ntp.tm_min<10) out+="0";
-                out += String(struct_time_ntp.tm_min)+":";
-                if(struct_time_ntp.tm_sec<10) out+="0";
-                out += String(struct_time_ntp.tm_sec);
+                out += String(struct_time_ntp.tm_min);
+                // if(struct_time_ntp.tm_sec<10) out+="0";
+                // out += String(struct_time_ntp.tm_sec);
         }
         return out;
 }
@@ -56,12 +56,12 @@ String getDatum(uint8_t ShowMode){
                         out = diasSemana[struct_time_ntp.tm_wday];
                         out += " ";
                         if(struct_time_ntp.tm_mday < 10) out="0";
-                        out += String(struct_time_ntp.tm_mday)+".";
+                        out += String(struct_time_ntp.tm_mday)+" ";
                         out += mes_anyo[struct_time_ntp.tm_mon];
                         //out += String(struct_time_ntp.tm_year+1900);
                         break;
                 }
-                out += "."+String(struct_time_ntp.tm_year+1900);
+                out += " "+String(struct_time_ntp.tm_year+1900);
         }
 
         return out;
