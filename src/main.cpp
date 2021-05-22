@@ -22,8 +22,10 @@
 #include "bsec.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
+// #include <AsyncTCP.h>
+// #include <ESPAsyncWebServer.h>
+#include "WebServer.h"
+
 #include "time.h"
 #include <stdlib.h> //For future use in weather forecasting
 #include <stdio.h> //For future use in weather forecasting
@@ -46,7 +48,6 @@ const byte led_gpio = 32; // the PWM pin the LED is attached to
 int PWMchannel = 0;
 int i = 0;
 char flag=0;
-boolean flag_inter_loop=false;
 //const char * intro = "Time[ms],r_t[°C],p[hPa],r_hum[%],gas[Ohm],IAQ,IAQacc,temp[°C],h[%],S_IAQ,CO2_equ,bre_VOC,Gas%";
 const char * intro = "Time[ms],p[hPa],gas[Ohm],IAQ,temp[°C],h[%],CO2_equ,CO2,bre_VOC,Gas%,stabSta,runInSta";
 uint8_t bsec_config_iaq[] = {
@@ -55,10 +56,12 @@ uint8_t bsec_config_iaq[] = {
 uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE] = {0};
 uint16_t stateUpdateCounter = 0;
 String output;
-String tempe_web;
-String iaq_web;
-String press_web;
-String hum_web;
+float varTemp, varPres, varHumi, varGasR, varCo2E, varBVoc, varGasP,varSiaq,varIaq;
+int varIaqAcc, varStab, varRunI,   varSiaqAcc, varCo2eAcc;
+int varBVocAcc, varGasPAcc;
+float varCo2M=555;
+String cadena_envio,dateString;
+
 /////////////################# functions #####################////////////////
 void loop2(void *parameter);
 void loop1(void *parameter);
@@ -68,15 +71,21 @@ void checkIaqSensorStatus(void);
 void loadState(void);
 void updateState(void);
 void myTimerEvent(void);
+void handleRoot();
+bool loadFromSpiffs(String path);
+void handleWebRequests();
+void dataSensorRequest(void);
+void JsonStringFormat(void);
 /////////////################# handlers definition #####################///////
 /////////////################# Web Specific #####################///////
- char *ssid = "FRITZ!Box 6591 Cable SW";         // replace with your SSID
- char *password = "62407078731195560963";
-// char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
-// char *password = "07225443701792235194";  // replace with your Password
+// char *ssid = "FRITZ!Box 6591 Cable SW";         // replace with your SSID
+// char *password = "62407078731195560963";
+char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
+char *password = "07225443701792235194";  // replace with your Password
 //char *ssid = "Vodafone-FC6F = FRITZ!Box 6591 Cable BE";          // replace with your SSID/char *password = "07225443701792235194";  // replace with your Password";          // replace with your SSID
 //char *password = "pW6298625330626571";  // replace with your Password
-AsyncWebServer server(80);
+// AsyncWebServer server(80);
+WebServer server(80);
 /////////////################# NTP Client Specific #####################///////
 const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 3600;  //Germany is GMT +1, expressed in seconds
@@ -84,7 +93,7 @@ const int daylightOffset_sec = 3600;   // There is one extra hour in DST
 /////////////################# Blynk  config ###################///////
 char auth[] = "DZJ5YStEBLYrOid9YuJH-Qm3QDPuy-Oe";    // token from the app
 BlynkTimer timer;
-                             // data request on app time
+// data request on app time
 /////////////################# Blynk  variables ###################///////
 iaq_level property; // define the structure property for iaq level of the app
 /////////////################# CO2_sensor  config ###################///////
@@ -133,7 +142,7 @@ void setup() {
         Serial.println(WiFi.SSID());
         Serial.print("IP address:");
         Serial.print(WiFi.localIP());
-////// Blink begin config
+////// Blynk begin config
         Blynk.begin(auth, ssid, password);
         timer.setInterval(1000L, myTimerEvent);
 ////// Config for readding CO2_sensor
@@ -170,39 +179,31 @@ void setup() {
         //Serial.println("------### Entrando en loops");
 /////Enabling Multicore program execution
         xTaskCreatePinnedToCore(loop1,"Task_1",10000,NULL,1,&Task1,0);
-        //delay(500);
+        delay(500);
         xTaskCreatePinnedToCore(loop2,"Task_2",10000,NULL,1,&Task2,1);
         delay(500);
         //hw_wdt_disable();
 
 /////Handlers
-        server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send(SPIFFS, "/index.html");
+        server.on("/", handleRoot);
+        server.on("/info", [](){
+                server.send(200, "application/json", cadena_envio);
         });
-        // send style.css file from SPIFFS
-        server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send(SPIFFS, "/style.css", "text/css");
+        server.on("/temperature", HTTP_GET,[](){
+                server.send(200, "text/json", String(varTemp));
         });
-        // send script.js file from SPIFFS
-        server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send(SPIFFS, "/script.js", "text/javascript");
+        server.on("/iaq", HTTP_GET,[](){
+                server.send(200, "text/json", String(varIaq));
         });
-        server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send_P(200, "text/plain", tempe_web.c_str());
+        server.on("/co2", HTTP_GET,[](){
+                server.send(200, "text/json", String(varCo2M));
         });
-        // send BME680 humidity
-        server.on("/iaq", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send_P(200, "text/plain", iaq_web.c_str());
-        });
-        server.on("/pressure", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send_P(200, "text/plain", press_web.c_str());
-        });
-
-        server.on("/humidity", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send_P(200, "text/plain", hum_web.c_str());
+        server.on("/breathvoc_h", HTTP_GET,[](){
+                server.send(200, "text/json", String(varBVoc));
         });
 /////Initialize Server
-        server.begin(); // begin server at port 80
+        server.onNotFound(handleWebRequests);
+        server.begin();// begin server at port 80
 }
 /////////////################# LOOP Executed in Core 0 #####################////////////////
 void loop2(void *parameter) {
@@ -215,79 +216,53 @@ void loop2(void *parameter) {
                 //Serial.println(i);//
                 //unsigned long time_trigger = millis();
                 if (iaqSensor.run()) {   // If new data is available
-                        // tm timeinfo;
-                        // if(!getLocalTime(&timeinfo)) {
-                        //         Serial.println("Failed to obtain time");
-                        //         output = String(time_trigger);
-                        // }
-                        // else
-                        // {
-                        //   output = String(timeinfo.tm_hour)+":";
-                        //   output += String(timeinfo.tm_min)+":";
-                        //   output += String(timeinfo.tm_sec);
-                        // }
-                        //output += ", " + String(iaqSensor.rawTemperature);
-                        output = getZeit();
-                        press_web = String(iaqSensor.pressure/100);
-                        output += ", " + press_web;
-                        //output += ", " + String(iaqSensor.rawHumidity);
-                        output += ", " + String(iaqSensor.gasResistance);
-                        int numberIAQ = iaqSensor.iaq;
-                        int numberIAQAcc = iaqSensor.iaqAccuracy;
-                        iaq_web = String(numberIAQ);
-                        output += ", " + iaq_web;
-                        //output += ", " + String(iaqSensor.iaqAccuracy);
-                        tempe_web = String(iaqSensor.temperature);
-                        output += ", " + tempe_web;
-                        hum_web = String(iaqSensor.humidity);
-                        output += ", " + hum_web;
-                        //output += ", " + String(iaqSensor.staticIaq);
-                        output += ", " + String(iaqSensor.co2Equivalent);
-                        //output += ", " + String(get_CO2_measure());
-                        output += ", ";
-                        output += ", " + String(iaqSensor.breathVocEquivalent);
-                        output += ", " + String(iaqSensor.gasPercentage);
-                        output += ", " + String(iaqSensor.stabStatus);
-                        output += ", " + String(iaqSensor.runInStatus);
-
-                        Serial.println( getDatum(IN_NUMBERS) );
-                        //Serial.println(getMonat());//Check the month
-                        Serial.println(intro);
-                        Serial.println(output);
-                        Serial.println("Status: "+String( messages_runin_stat[(int)iaqSensor.runInStatus] ));
-                        Serial.println("IAQ = "+String(numberIAQ));
-                        Serial.print(" Quality: ");
-                        Serial.println( messages_quality[iaq_Index2Level(numberIAQ)]);
-                        Serial.print(" Impact: ");
-                        Serial.println(messages_impact[iaq_Index2Level(numberIAQ)]);
-                        Serial.print(" Suggested action: ");
-                        Serial.println(messages_saction[iaq_Index2Level(numberIAQ)]);
-                        Serial.println("IAQ Accuracy = "+String(numberIAQAcc));
-                        Serial.println(messages_accuracy[numberIAQAcc]);
-                        Serial.print("IAQ_Static = "+String(iaqSensor.staticIaq));
-                        Serial.println(" IAQ_Static Accuracy = "+String(iaqSensor.staticIaqAccuracy));
-
-                        Serial.print("co2 = "+String(iaqSensor.co2Equivalent)+" ppm");
-                        Serial.println(" co2 Accuracy = "+String(iaqSensor.co2Accuracy));
-                        Serial.print("breath-VOC = "+String(iaqSensor.breathVocEquivalent)+" ppm");
-                        Serial.println(" breath-VOC Accuracy = "+String(iaqSensor.breathVocAccuracy));
-                        // Serial.print("compGasValue = "+String(iaqSensor.compGasValue)+" ppm");
-                        // Serial.println(" compGasValue Accuracy = "+String(iaqSensor.compGasAccuracy));
-                        Serial.print("Gas Percent = "+String(iaqSensor.gasPercentage)+" %");
-                        Serial.println(" Gas Percent Accuracy = "+String(iaqSensor.gasPercentageAcccuracy));
-                        Serial.println(' ');
+                        dataSensorRequest();
+                        JsonStringFormat();
+                        Serial.println(cadena_envio);
+                        // output = dateString;
+                        // output += ", " + String(varPres/100);
+                        // output += ", " + String(varGasR);
+                        // output += ", " + String(varIaq);
+                        // output += ", " + String(varTemp);
+                        // output += ", " + String(varHumi);
+                        // output += ", " + String(varCo2E);
+                        // output += ", " + String(varCo2M);
+                        // output += ", " + String(varBVoc);
+                        // output += ", " + String(varGasP);
+                        // output += ", " + String(varStab);
+                        // output += ", " + String(varRunI);
+                        //
+                        // Serial.println( getDatum(IN_NUMBERS) );
+                        // Serial.println(intro);
+                        // Serial.println(output);
+                        // Serial.println("Status: "+String( messages_runin_stat[varRunI] ));
+                        // Serial.println("IAQ = "+String(varIaq));
+                        // Serial.print(" Quality: ");
+                        // Serial.println( messages_quality[iaq_Index2Level(varIaq)]);
+                        // Serial.print(" Impact: ");
+                        // Serial.println(messages_impact[iaq_Index2Level(varIaq)]);
+                        // Serial.print(" Suggested action: ");
+                        // Serial.println(messages_saction[iaq_Index2Level(varIaq)]);
+                        // Serial.println("IAQ Accuracy = "+String(varIaqAcc));
+                        // Serial.println(messages_accuracy[varIaqAcc]);
+                        // Serial.print("IAQ_Static = "+String(varSiaq));
+                        // Serial.println(" IAQ_Static Accuracy = "+String(varSiaqAcc));
+                        // Serial.print("co2 = "+String(varCo2E)+" ppm");
+                        // Serial.println(" co2 Accuracy = "+String(varCo2eAcc));
+                        // Serial.print("breath-VOC = "+String(varBVoc)+" ppm");
+                        // Serial.println(" breath-VOC Accuracy = "+String(varBVocAcc));
+                        // Serial.print("Gas Percent = "+String(varGasP)+" %");
+                        // Serial.println(" Gas Percent Accuracy = "+String(varGasPAcc));
+                        // Serial.println(' ');
                         updateState();
 
                 } else {
                         checkIaqSensorStatus();
                 }
 
-                if(flag_inter_loop) {
-                        //Serial.println("Loop2 says: Core "+String(xPortGetCoreID()));
-                        flag_inter_loop=false;
-                        //vTaskDelay(10);///funktioniert nicht
-                }
-        }
+                server.handleClient();/// NO QUITAR!!!
+
+        }///////// main while loop
 
 
 }
@@ -320,7 +295,6 @@ void loop1(void *parameter) {
                         yield();
                         delay(600);
                         //Serial.println("Loop1 says: Core "+String(xPortGetCoreID()));
-                        flag_inter_loop=true;
                 }
         }
         //Serial.println("####Saliendo loop()");//
@@ -432,15 +406,15 @@ void updateState(void)
 void myTimerEvent()
 {
 
-        property = get_properties_for_iaq_level(iaqSensor.iaq);               // gets correspondig led color, led intensity and iaq description
-        Blynk.virtualWrite(V34,iaqSensor.temperature);                        // sends temperature to chart of the app
-        Blynk.virtualWrite(V25,iaqSensor.temperature);                        //sends temperature to numerical display of the app
-        Blynk.virtualWrite(V33,press_web);                                    //sends pressure to the Blynk_App_Asistent
-        Blynk.virtualWrite(V32,iaqSensor.humidity);                           //sends humidity
-        Blynk.virtualWrite(V31,get_CO2_measure());                            // sends co2 estimate or meassuerement
-        Blynk.virtualWrite(V30,iaqSensor.gasPercentageAcccuracy);             // sents gas percentage
-        Blynk.virtualWrite(V28,iaqSensor.iaq);                                //sends iaq vale
-        Blynk.virtualWrite(V29,iaq_to_percentage(iaqSensor.iaqAccuracy));     //sends iaq accuracy
+        property = get_properties_for_iaq_level(varIaq);               // gets correspondig led color, led intensity and iaq description
+        Blynk.virtualWrite(V34,varTemp);                        // sends temperature to chart of the app
+        Blynk.virtualWrite(V25,varTemp);                        //sends temperature to numerical display of the app
+        Blynk.virtualWrite(V33,varPres/100);                                    //sends pressure to the Blynk_App_Asistent
+        Blynk.virtualWrite(V32,varHumi);                           //sends humidity
+        Blynk.virtualWrite(V31,varCo2M);                            // sends co2 estimate or meassuerement
+        Blynk.virtualWrite(V30,varGasP);             // sents gas percentage
+        Blynk.virtualWrite(V28,varIaq);                                //sends iaq vale
+        Blynk.virtualWrite(V29,iaq_to_percentage(varIaqAcc));     //sends iaq accuracy
         Blynk.setProperty(V27,"color",property.LED_color);                    //sends led color
         Blynk.virtualWrite(V27,property.LED_intensity);                       //sends led intensity
         Blynk.virtualWrite(V26,property.iaq_level_description);               //sends iaq description
@@ -448,14 +422,120 @@ void myTimerEvent()
         Blynk.virtualWrite(V23,getDatum(IN_NUMBERS));                         //sends date
 
         // and the engineer saw that the code..
-        //                                                ... was good...
+        //                                                ...it was mehhh...
 }//
 //
 /////////////################# funciton  #####################////////////////
+void handleRoot()
+{
+        server.sendHeader("Location", "/index.html", true);
+        server.send(302, "text/plane", "Hola Hola Hola");
+}
 /////////////################# funciton  #####################////////////////
+bool loadFromSpiffs(String path)
+{
+        String dataType = "text/plain";
+
+        if(path.endsWith("/"))
+                path += "index.htm";
+
+        if(path.endsWith(".src"))
+                path = path.substring(0, path.lastIndexOf("."));
+
+        else if(path.endsWith(".html"))
+                dataType = "text/html";
+
+
+        else if(path.endsWith(".css"))
+                dataType = "text/css";
+
+        else if(path.endsWith(".js"))
+                dataType = "application/javascript";
+
+        File dataFile = SPIFFS.open(path.c_str(), "r");
+        if(server.hasArg("download"))
+                dataType = "application/octet-stream";
+        if(server.streamFile(dataFile, dataType) != dataFile.size())
+        {
+
+        }
+
+        dataFile.close();
+        return true;
+}
 /////////////################# funciton  #####################////////////////
+void handleWebRequests()
+{
+        if(loadFromSpiffs(server.uri())) return;
+
+        String message = "File not detected\n\n";
+        message += "URI: ";
+        message += server.uri();
+        message += "\nMethod: ";
+        message += (server.method() == HTTP_GET)?"GET":"POST";
+        message += "\nArguments: ";
+        message += server.args();
+        message += "\n";
+
+        for(uint8_t i=0; i<server.args(); i++)
+
+
+        {
+                message += " NAME:"+server.argName(i) + "\n VALUE:" + server.arg(i) + "\n";
+        }
+
+        server.send(404, "text/plain", message);
+        Serial.println(message);
+}
 /////////////################# funciton  #####################////////////////
+void dataSensorRequest(){
+
+        dateString = getZeit();
+        varTemp = iaqSensor.temperature;
+        varPres = iaqSensor.pressure;
+        varHumi = iaqSensor.humidity;
+        varGasR = iaqSensor.gasResistance;
+        varCo2E = iaqSensor.co2Equivalent;
+        varBVoc = iaqSensor.breathVocEquivalent;
+        varGasP  = iaqSensor.gasPercentage;
+        varIaq  = iaqSensor.iaq;
+        varSiaq  =  iaqSensor.staticIaq;
+        varStab  =  iaqSensor.stabStatus;
+        varRunI =  iaqSensor.runInStatus;
+        varIaqAcc =  iaqSensor.iaqAccuracy;
+        varSiaqAcc  =  iaqSensor.staticIaqAccuracy;
+        varCo2eAcc  =  iaqSensor.co2Accuracy;
+        varBVocAcc  =  iaqSensor.breathVocAccuracy;
+        varGasPAcc  =  iaqSensor.gasPercentageAcccuracy;
+
+
+}
 /////////////################# funciton  #####################////////////////
+void JsonStringFormat(){
+
+        cadena_envio = StartJS;//Initializer JSON chain
+        cadena_envio += String(varTemp) + SpacerJS;//temp
+        cadena_envio += String(varPres/100) + SpacerJS;//pres
+        cadena_envio += String(varHumi) + SpacerJS;//hum
+        cadena_envio += getDatum(IN_LETTERS)+" "+ dateString+ SpacerJS;//fecha
+        cadena_envio += messages_runin_stat[varRunI] +SpacerJS;//run in status
+        cadena_envio += String(varCo2M) + SpacerJS; //co2 mess
+        cadena_envio += String(varCo2E) + SpacerJS; //co2 stimation
+        cadena_envio += messages_accuracy[varCo2eAcc] + SpacerJS; //co2 stimation accuracy
+        cadena_envio += "Any suggestion" + SpacerJS; //co2 suggested acti
+        cadena_envio += String(varBVoc) + SpacerJS;//breath VOC
+        cadena_envio += messages_accuracy[varBVocAcc] + SpacerJS;//breath VOC accuracy
+        cadena_envio += String(varGasP) + SpacerJS;//Gas percentage
+        cadena_envio += messages_accuracy[varGasPAcc] + SpacerJS;//Gas percentage accuracy
+        cadena_envio += String(varIaq)+ SpacerJS;//IAQ
+        cadena_envio += messages_accuracy[varIaqAcc]+ SpacerJS;//IAQ Accuracy
+        cadena_envio += messages_impact[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ Impact
+        cadena_envio += messages_saction[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ Suggested actions
+        cadena_envio += messages_iaqcolors[iaq_Index2Level(varIaq)]+ SpacerJS;
+        cadena_envio += messages_quality[iaq_Index2Level(varIaq)];//+ SpacerJS;
+        cadena_envio += StopJS;//Finalizer JSON chain
+
+}
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
