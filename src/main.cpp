@@ -218,42 +218,6 @@ void loop2(void *parameter) {
                 if (iaqSensor.run()) {   // If new data is available
                         dataSensorRequest();
                         JsonStringFormat();
-                        //&Serial.println(cadena_envio);
-                        // output = dateString;
-                        // output += ", " + String(varPres/100);
-                        // output += ", " + String(varGasR);
-                        // output += ", " + String(varIaq);
-                        // output += ", " + String(varTemp);
-                        // output += ", " + String(varHumi);
-                        // output += ", " + String(varCo2E);
-                        // output += ", " + String(varCo2M);
-                        // output += ", " + String(varBVoc);
-                        // output += ", " + String(varGasP);
-                        // output += ", " + String(varStab);
-                        // output += ", " + String(varRunI);
-                        //
-                        // Serial.println( getDatum(IN_NUMBERS) );
-                        // Serial.println(intro);
-                        // Serial.println(output);
-                        // Serial.println("Status: "+String( messages_runin_stat[varRunI] ));
-                        // Serial.println("IAQ = "+String(varIaq));
-                        // Serial.print(" Quality: ");
-                        // Serial.println( messages_quality[iaq_Index2Level(varIaq)]);
-                        // Serial.print(" Impact: ");
-                        // Serial.println(messages_impact[iaq_Index2Level(varIaq)]);
-                        // Serial.print(" Suggested action: ");
-                        // Serial.println(messages_saction[iaq_Index2Level(varIaq)]);
-                        // Serial.println("IAQ Accuracy = "+String(varIaqAcc));
-                        // Serial.println(messages_accuracy[varIaqAcc]);
-                        // Serial.print("IAQ_Static = "+String(varSiaq));
-                        // Serial.println(" IAQ_Static Accuracy = "+String(varSiaqAcc));
-                        // Serial.print("co2 = "+String(varCo2E)+" ppm");
-                        // Serial.println(" co2 Accuracy = "+String(varCo2eAcc));
-                        // Serial.print("breath-VOC = "+String(varBVoc)+" ppm");
-                        // Serial.println(" breath-VOC Accuracy = "+String(varBVocAcc));
-                        // Serial.print("Gas Percent = "+String(varGasP)+" %");
-                        // Serial.println(" Gas Percent Accuracy = "+String(varGasPAcc));
-                        // Serial.println(' ');
                         updateState();
 
                 } else {
@@ -546,3 +510,39 @@ void JsonStringFormat(){
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
+//&Serial.println(cadena_envio);
+// output = dateString;
+// output += ", " + String(varPres/100);
+// output += ", " + String(varGasR);
+// output += ", " + String(varIaq);
+// output += ", " + String(varTemp);
+// output += ", " + String(varHumi);
+// output += ", " + String(varCo2E);
+// output += ", " + String(varCo2M);
+// output += ", " + String(varBVoc);
+// output += ", " + String(varGasP);
+// output += ", " + String(varStab);
+// output += ", " + String(varRunI);
+//
+// Serial.println( getDatum(IN_NUMBERS) );
+// Serial.println(intro);
+// Serial.println(output);
+// Serial.println("Status: "+String( messages_runin_stat[varRunI] ));
+// Serial.println("IAQ = "+String(varIaq));
+// Serial.print(" Quality: ");
+// Serial.println( messages_quality[iaq_Index2Level(varIaq)]);
+// Serial.print(" Impact: ");
+// Serial.println(messages_impact[iaq_Index2Level(varIaq)]);
+// Serial.print(" Suggested action: ");
+// Serial.println(messages_saction[iaq_Index2Level(varIaq)]);
+// Serial.println("IAQ Accuracy = "+String(varIaqAcc));
+// Serial.println(messages_accuracy[varIaqAcc]);
+// Serial.print("IAQ_Static = "+String(varSiaq));
+// Serial.println(" IAQ_Static Accuracy = "+String(varSiaqAcc));
+// Serial.print("co2 = "+String(varCo2E)+" ppm");
+// Serial.println(" co2 Accuracy = "+String(varCo2eAcc));
+// Serial.print("breath-VOC = "+String(varBVoc)+" ppm");
+// Serial.println(" breath-VOC Accuracy = "+String(varBVocAcc));
+// Serial.print("Gas Percent = "+String(varGasP)+" %");
+// Serial.println(" Gas Percent Accuracy = "+String(varGasPAcc));
+// Serial.println(' ');
