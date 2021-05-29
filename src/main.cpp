@@ -13,6 +13,7 @@
  */
 /////////////################# headers #####################////////////////
 
+//upload_port = /dev/cu.SLAB_USBtoUART	//Danys pc
 #include <Arduino.h>
 //#include <RTClib.h>
 #include <Wire.h>
@@ -38,13 +39,14 @@
 #include "WeatherStat_BlynkApp.h"
 #include "WeatherStat_CO2sensor.h"
 #include "WeatherStat_Messages.h"
+#include "WeatherStat_Screen.h"
 //#include <DS3231.h>
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
 #define STATE_SAVE_PERIOD UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
 /////////////################# variables #####################////////////////
 //char daysOfTheWeek[7][12] = {"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"};
-const byte led_gpio = 32; // the PWM pin the LED is attached to
+const byte led_gpio = 13; // the PWM pin the LED is attached to
 int PWMchannel = 0;
 int i = 0;
 char flag=0;
@@ -76,6 +78,8 @@ bool loadFromSpiffs(String path);
 void handleWebRequests();
 void dataSensorRequest(void);
 void JsonStringFormat(void);
+void LCD_vars();
+
 /////////////################# handlers definition #####################///////
 /////////////################# Web Specific #####################///////
 // char *ssid = "FRITZ!Box 6591 Cable SW";         // replace with your SSID
@@ -93,12 +97,15 @@ const int daylightOffset_sec = 3600;   // There is one extra hour in DST
 /////////////################# Blynk  config ###################///////
 char auth[] = "DZJ5YStEBLYrOid9YuJH-Qm3QDPuy-Oe";    // token from the app
 BlynkTimer timer;
+int unoo=0;
 // data request on app time
 /////////////################# Blynk  variables ###################///////
 iaq_level property; // define the structure property for iaq level of the app
 /////////////################# CO2_sensor  config ###################///////
 
-/////////////################# CO2_sensor ###################///////
+/////////////################# Touch_LCD ###################///////
+clima_data var_data;
+wifiData wifiData_in_main;
 
 /////////////################# Arduino sh%& #####################///////////////
 TaskHandle_t Task2;
@@ -135,8 +142,7 @@ void setup() {
         while (WiFi.status() != WL_CONNECTED)
         {
                 delay(1000);
-                Serial.print("Connecting to WiFi..");
-                Serial.print(".");
+                Serial.println("Connecting to WiFi (setup)...");
         }
         Serial.print("\nConnected to the WiFi network: ");
         Serial.println(WiFi.SSID());
@@ -147,6 +153,9 @@ void setup() {
         timer.setInterval(1000L, myTimerEvent);
 ////// Config for readding CO2_sensor
         pinMode(MHZ19_PWM_PIN, INPUT);        //MHZ19 PWM Pin als Eingang konfigurieren
+//////// Screen initialization
+
+        screen_setup();
 /////Initialize BME680 Sensor
         configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
@@ -203,15 +212,16 @@ void setup() {
         });
 /////Initialize Server
         server.onNotFound(handleWebRequests);
-        server.begin();// begin server at port 80
+        server.begin();// begin server
+
 }
 /////////////################# LOOP Executed in Core 0 #####################////////////////
 void loop2(void *parameter) {
 
         while(1) {
                 yield();
-                Blynk.run(); // run code of the app
-                timer.run();  // establishes comunication to the app in a time interval to load sensor data
+                // Blynk.run(); // run code of the app
+                // timer.run();  // establishes comunication to the app in a time interval to load sensor data
                 //Serial.print("---### LOOP2");
                 //Serial.println(i);//
                 //unsigned long time_trigger = millis();
@@ -232,39 +242,76 @@ void loop2(void *parameter) {
 }
 /////////////################# LOOP Executed in Core 1 #####################////////////////
 void loop1(void *parameter) {
+        //call Screen handle
+
         //Serial.print("---------### LOOP1");
         //Serial.println(i);//
+        yield();
         while(1) {
+          //hw_wdt_disable();
+                //Serial.println(" -----in loop 1");
                 yield();
-                ledcWrite(PWMchannel, i);
-                //Serial.println(BSEC_MAX_STATE_BLOB_SIZE);
-                //delay(100);
-                if (!flag) {
-                        i++;
-                        delay(1);
+                LCD_vars();
+                //Serial.println("  -Outside LCD_vars()");
+                yield();
+                wifiData_in_main=screenHandler(var_data);
+              //  Serial.println("      -Outside screenHandler()");
+//                strcpy(ssid,wifiData_in_main.wifiName_for_main);
+//                strcpy(password,wifiData_in_main.wifiPassword_for_main);+
+                //Serial.println(wifiData_in_main.wifiChangeFlag);
+                if(wifiData_in_main.wifiChangeFlag==HIGH) {
+                        //Serial.println("          -inside   if(wifiData_in_main.wifiChangeFlag");
+                        WiFi.begin(wifiData_in_main.wifiName_for_main,wifiData_in_main.wifiPassword_for_main);
+                        char j=0;
+                        while ((WiFi.status() != WL_CONNECTED)&&j<4)
+                        {
+                                delay(1000);
+                                Serial.println("Connecting to WiFi..."+String(j));
+                                j++;
+                        }
+                        if(j<4) {
+                                var_data.wifiSuccessfulFlag=HIGH;
+                        }
+                        else{
+                                var_data.wifiSuccessfulFlag=LOW;
+                        }
                 }
-
                 else{
-                        i--;
-                        delay(1);
+                        var_data.wifiSuccessfulFlag=LOW;
                 }
-
-                if(i==1023) {
-                        flag=1;
-                        delay(75);
-                }
-                if(i==0) {
-                        flag=0;
-                        ledcWrite(PWMchannel, 0);
-                        yield();
-                        delay(600);
-                        //Serial.println("Loop1 says: Core "+String(xPortGetCoreID()));
-                }
+                delay(1);
+                //ledcWrite(PWMchannel, i);
+                //Serial.println(BSEC_MAX_STATE_BLOB_SIZE);
+              // char  l=0;
+              // l++;
+                // if (!flag) {
+                //         i++;
+                //         delay(1);
+                // }
+                //
+                // else{
+                //         i--;
+                //         delay(1);
+                // }
+                //
+                // if(i==1023) {
+                //         flag=1;
+                //         delay(75);
+                // }
+                // if(i==0) {
+                //         flag=0;
+                //         ledcWrite(PWMchannel, 0);
+                //         //yield();
+                //         delay(75);
+                //         //Serial.println("Loop1 says: Core "+String(xPortGetCoreID()));
+                // }
         }
         //Serial.println("####Saliendo loop()");//
 }
 /////////////################# funciton  #####################////////////////
 void loop(){
+        Blynk.run(); // run code of the app
+        timer.run(); // establishes comunication to the app in a time interval to load sensor data
 }
 /////////////################# funciton  #####################////////////////
 void feedTheDog(){
@@ -383,11 +430,25 @@ void myTimerEvent()
         Blynk.virtualWrite(V27,property.LED_intensity);                       //sends led intensity
         Blynk.virtualWrite(V26,property.iaq_level_description);               //sends iaq description
         Blynk.virtualWrite(V24,getZeit());                                    // sends time
-        Blynk.virtualWrite(V23,getDatum(IN_NUMBERS));                         //sends date
+        Blynk.virtualWrite(V23,getDatum(IN_NUMBERS));
+        Blynk.virtualWrite(V21,wifiData_in_main.wifiName_for_main);
+        Blynk.virtualWrite(V22,wifiData_in_main.wifiPassword_for_main);                      //sends date
 
         // and the engineer saw that the code..
         //                                                ...it was mehhh...
 }//
+////////////////////Touch_LCD/////////////////////////////////////////////////////////
+void LCD_vars(){
+        var_data.date_for_LCD=getDatum(IN_NUMBERS);
+        var_data.time_for_LCD=getZeit();
+        var_data.iaq_for_LCD=varIaq;
+        var_data.temp_for_LCD=varTemp;
+        var_data.co2_for_LCD=varCo2M;
+        var_data.gas_for_LCD=varGasP;
+        var_data.pres_for_LCD=varPres/100;
+        var_data.humi_for_LCD=varHumi;
+}
+//////////////////////////////////////////////////////////////////////////
 //
 /////////////################# funciton  #####################////////////////
 void handleRoot()
@@ -436,7 +497,7 @@ void handleWebRequests()
         message += "URI: ";
         message += server.uri();
         message += "\nMethod: ";
-        message += (server.method() == HTTP_GET)?"GET":"POST";
+        message += (server.method() == HTTP_GET) ? "GET" : "POST";
         message += "\nArguments: ";
         message += server.args();
         message += "\n";
@@ -473,6 +534,7 @@ void dataSensorRequest(){
         varGasPAcc  =  iaqSensor.gasPercentageAcccuracy;
 
 
+
 }
 /////////////################# funciton  #####################////////////////
 void JsonStringFormat(){
@@ -500,7 +562,8 @@ void JsonStringFormat(){
         cadena_envio += StopJS;//Finalizer JSON chain
 
 }
-/////////////################# funciton  #####################////////////////
+/////////////################# funciton to print values on screnn  #####################////////////////
+
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////

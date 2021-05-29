@@ -61,7 +61,7 @@ String getDatum(uint8_t ShowMode){
                         //out += String(struct_time_ntp.tm_year+1900);
                         break;
                 }
-                out += " "+String(struct_time_ntp.tm_year+1900);
+                out += "."+String(struct_time_ntp.tm_year+1900);
         }
 
         return out;
