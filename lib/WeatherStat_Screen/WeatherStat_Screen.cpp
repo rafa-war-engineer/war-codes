@@ -124,7 +124,8 @@ char helpChar[2];                                     //help Variable for charac
 char outputVar[40];                                   //output of the keyboard
 bool enteringDoneFlag=LOW;                            //Flag to show that entering of Wifi name and password is done
 uint16_t triangleEdge[2];                             //edges of the arrows shown on the keyboard
-
+uint8_t cursorPosX=0;
+uint8_t cursorPosY=0;
 ////////////////////////////////////////////////////////////////////////
  //initializing
 
@@ -661,6 +662,10 @@ uint16_t triangleEdge[2];                             //edges of the arrows show
 
  //Function for the keyboard
  char* keyboard(char* inputVar){
+   Serial.println(inputVar);
+   Serial.println(outputVar);
+   Serial.println(wifiName);
+   Serial.println(oldWifiName);
          switch(inputCaseVar) {
          //setting up keyboard
          case 0:
