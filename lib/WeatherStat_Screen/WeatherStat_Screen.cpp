@@ -662,10 +662,6 @@ uint8_t cursorPosY=0;
 
  //Function for the keyboard
  char* keyboard(char* inputVar){
-   Serial.println(inputVar);
-   Serial.println(outputVar);
-   Serial.println(wifiName);
-   Serial.println(oldWifiName);
          switch(inputCaseVar) {
          //setting up keyboard
          case 0:
@@ -796,8 +792,14 @@ uint8_t cursorPosY=0;
                  timeChange=1000;
                  if(millis()-oldTime_ms>=timeChange) {
                          inputCaseVar=3;
-                         tft.fillRect((1+strlen(outputVar))*xLetterPix[1],1.5*yLetterPix[1],2*xLetterPix[1],yLetterPix[1],ILI9341_BLACK);
-                         tft.setCursor(strlen(outputVar)*xLetterPix[1],1.5*yLetterPix[1]);
+                         if(strlen(outputVar)>20) {
+                                 tft.fillRect((-19+strlen(outputVar))*xLetterPix[1],2.5*yLetterPix[1],2*xLetterPix[1],yLetterPix[1],ILI9341_BLACK);
+                                 tft.setCursor((strlen(outputVar)-20)*xLetterPix[1],2.5*yLetterPix[1]);
+                         }
+                         else {
+                                 tft.fillRect((1+strlen(outputVar))*xLetterPix[1],1.5*yLetterPix[1],2*xLetterPix[1],yLetterPix[1],ILI9341_BLACK);
+                                 tft.setCursor(strlen(outputVar)*xLetterPix[1],1.5*yLetterPix[1]);
+                         }
                          if ((ii==9||ii==11)&&j==0) {
                                  inputCaseVar=!(oldInputCaseVar-1)+1;
                          }
