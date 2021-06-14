@@ -316,7 +316,7 @@ void loop1(void *parameter) {
 }
 /////////////################# LOOP2  #####################////////////////
 void loop3(void *parameter) {
-
+ varCo2M = get_CO2_measure();
 }
 /////////////################# LOOP3   #####################////////////////
 void loop4(void *parameter) {
