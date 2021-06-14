@@ -62,7 +62,7 @@ String output;
 float varTemp, varPres, varHumi, varGasR, varCo2E, varBVoc, varGasP,varSiaq,varIaq;
 int varIaqAcc, varStab, varRunI,   varSiaqAcc, varCo2eAcc;
 int varBVocAcc, varGasPAcc;
-float varCo2M=555;
+float varCo2M=400.0;
 String cadena_envio,dateString;
 
 /////////////################# functions #####################////////////////
@@ -526,7 +526,7 @@ void handleWebRequests()
 
 
         {
-                message += " NAME:"+server.argName(i) + "\n VALUE:" + server.arg(i) + "\n";
+          message += " NAME:"+server.argName(i) + "\n VALUE:" + server.arg(i) + "\n";
         }
 
         server.send(404, "text/plain", message);
