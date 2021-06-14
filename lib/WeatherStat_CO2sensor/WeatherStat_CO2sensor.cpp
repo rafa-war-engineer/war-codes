@@ -17,7 +17,7 @@
  unsigned long difference_mesured_estimated =0;
 
 ///////////////////////////////        funtion to conver the measure of acurracy from 0 to 4 to a percentage from 0 to 100/////////////////////////////////////////////////
-int get_CO2_measure(){
+float get_CO2_measure(){
 
   timeHigh = pulseIn(MHZ19_PWM_PIN, HIGH, 2500000);             // Alle Zeiten in Mikrosekunden
   timeLow = pulseIn(MHZ19_PWM_PIN, LOW, 2500000);
@@ -30,7 +30,7 @@ int get_CO2_measure(){
   // Mit dem PWM Signal überträgt der Sensor den Wert als Bruchteil des Messbereichs ...
   float pulseHighRatio = (timeHigh - highLeadTime)/(float)(periodDuration - highLeadTime - lowEndTime);
   // .. erst durch die Multiplaktion mit dem Messbereich erhält man den absoluten Messwert.
-  int CO2_measured = MHZ19_MAX_PPM * pulseHighRatio;
+  float CO2_measured = MHZ19_MAX_PPM * pulseHighRatio;
 
   return(CO2_measured);
 

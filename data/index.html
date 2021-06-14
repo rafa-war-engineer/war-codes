@@ -6,6 +6,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="bootstrap.min.css">
+  <link rel="stylesheet" href="blanqui.css">
   <script src="https://code.highcharts.com/highcharts.js"></script>
 </head>
 
@@ -131,6 +132,12 @@
 
   </div>
 
+
+
+
+
+
+
   <!-- ALERT BAR END -->
 
   <!-- QUITAR, EN LO QUE DESCUBRO COMO CAMBIAR EL COLOR -->
@@ -139,16 +146,39 @@
 
   <div class="container">
     <div class="col d-flex justify-content-center">
+
+<div class="card-columns mx-auto d-flex justify-content-center col-8">
+
+
+
       <div class="card-columns">
+
 
         <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
           <div class="card-header text-white bg-dark">
-            <h2> <small>Temperature</small></h2>
+            <h2> <small>Forecast</small></h2>
           </div>
+
           <div class="card-body text-dark">
-            <h2 class="card-title" id="temp"></h2>
+            <div class="forecast">
+                Next 12H: Cloudy
+            </div>
+            <div class="temp">
+               <img src="https://s5.postimg.cc/yzcm7htyb/image.png" alt="" width="40">
+               <h2 id="temp">
+            </div>
+            <img src="aachen.png" alt="" width="120">
+            <!-- <h2 class="card-title" id="forecast"></h2> original -->
+            <h2 class="card-title"></h2>
+
+                    </div>
           </div>
-        </div>
+
+
+
+
+
+
 
         <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
           <div class="card-header text-white bg-dark">
@@ -159,6 +189,8 @@
           </div>
         </div>
 
+
+
         <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
           <div class="card-header text-white bg-dark">
             <h2> <small>Rel. Humidity</small></h2>
@@ -167,9 +199,12 @@
             <h2 class="card-title" id="hum"></h2>
           </div>
         </div>
+
+</div>
+</div>
       </div>
     </div>
-  </div>
+
 
 
   <!-- tarjetas de iaq y co2 -->
