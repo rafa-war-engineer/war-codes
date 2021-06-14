@@ -32,6 +32,7 @@
 #include <stdio.h> //For future use in weather forecasting
 #include <BlynkSimpleEsp32.h>
 
+
 //#include "esp_task_wdt.h"
 //#include "soc/timer_group_struct.h"
 //#include "soc/timer_group_reg.h"
@@ -65,6 +66,7 @@ float varCo2M=555;
 String cadena_envio,dateString;
 
 /////////////################# functions #####################////////////////
+void loop4(void *parameter);
 void loop2(void *parameter);
 void loop1(void *parameter);
 void feedTheDog(void);
@@ -108,6 +110,8 @@ clima_data var_data;
 wifiData wifiData_in_main;
 
 /////////////################# Arduino sh%& #####################///////////////
+TaskHandle_t Task4;
+TaskHandle_t Task3;
 TaskHandle_t Task2;
 TaskHandle_t Task1;
 //RTC_DS3231 rtc;
@@ -187,9 +191,11 @@ void setup() {
         checkIaqSensorStatus();
         //Serial.println("------### Entrando en loops");
 /////Enabling Multicore program execution
-        xTaskCreatePinnedToCore(loop1,"Task_1",10000,NULL,1,&Task1,0);
+        xTaskCreatePinnedToCore(loop1,"Task_1",5120,NULL,1,&Task1,1);
         delay(500);
-        xTaskCreatePinnedToCore(loop2,"Task_2",10000,NULL,1,&Task2,1);
+        xTaskCreatePinnedToCore(loop2,"Task_2",5120,NULL,1,&Task2,0);
+        delay(500);
+        xTaskCreatePinnedToCore(loop4,"Task_4",10000,NULL,1,&Task4,0);
         delay(500);
         //hw_wdt_disable();
 
@@ -219,7 +225,7 @@ void setup() {
 void loop2(void *parameter) {
 
         while(1) {
-                yield();
+                //yield();
                 // Blynk.run(); // run code of the app
                 // timer.run();  // establishes comunication to the app in a time interval to load sensor data
                 //Serial.print("---### LOOP2");
@@ -246,14 +252,14 @@ void loop1(void *parameter) {
 
         //Serial.print("---------### LOOP1");
         //Serial.println(i);//
-        yield();
+        //yield();
         while(1) {
           //hw_wdt_disable();
                 //Serial.println(" -----in loop 1");
-                yield();
+                //yield();
                 LCD_vars();
                 //Serial.println("  -Outside LCD_vars()");
-                yield();
+                //yield();
                 wifiData_in_main=screenHandler(var_data);
               //  Serial.println("      -Outside screenHandler()");
 //                strcpy(ssid,wifiData_in_main.wifiName_for_main);
@@ -279,7 +285,7 @@ void loop1(void *parameter) {
                 else{
                         var_data.wifiSuccessfulFlag=LOW;
                 }
-                delay(1);
+                //delay(1);
                 //ledcWrite(PWMchannel, i);
                 //Serial.println(BSEC_MAX_STATE_BLOB_SIZE);
               // char  l=0;
@@ -308,14 +314,28 @@ void loop1(void *parameter) {
         }
         //Serial.println("####Saliendo loop()");//
 }
+/////////////################# LOOP2  #####################////////////////
+void loop3(void *parameter) {
+
+}
+/////////////################# LOOP3   #####################////////////////
+void loop4(void *parameter) {
+  while(true){
+    Blynk.run(); // run code of the app
+    timer.run(); // establishes comunication to the app in a time interval to load sensor data
+    delay(1);
+  }
+}
+/////////////################# funciton  #####################////////////////
+/////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
 void loop(){
-        Blynk.run(); // run code of the app
-        timer.run(); // establishes comunication to the app in a time interval to load sensor data
+        //Blynk.run(); // run code of the app
+        //timer.run(); // establishes comunication to the app in a time interval to load sensor data
 }
 /////////////################# funciton  #####################////////////////
 void feedTheDog(){
-        // feed dog 0
+        // TODO _u have to make something here
         // TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
         // TIMERG0.wdt_feed=1;                       // feed dog
         // TIMERG0.wdt_wprotect=0;                   // write protect
