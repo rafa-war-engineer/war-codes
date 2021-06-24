@@ -15,44 +15,29 @@
 
 //upload_port = /dev/cu.SLAB_USBtoUART	//Danys pc
 #include <Arduino.h>
-//#include <RTClib.h>
 #include <Wire.h>
-// #include <Adafruit_Sensor.h>
-// #include "Adafruit_BME680.h"
 #include <EEPROM.h>
 #include "bsec.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
-// #include <AsyncTCP.h>
-// #include <ESPAsyncWebServer.h>
 #include "WebServer.h"
-
 #include "time.h"
 #include <stdlib.h> //For future use in weather forecasting
 #include <stdio.h> //For future use in weather forecasting
 #include <BlynkSimpleEsp32.h>
-
-
-//#include "esp_task_wdt.h"
-//#include "soc/timer_group_struct.h"
-//#include "soc/timer_group_reg.h"
 #include "WeatherStat_NTP.h"
 #include "WeatherStat_BlynkApp.h"
 #include "WeatherStat_CO2sensor.h"
 #include "WeatherStat_Messages.h"
 #include "WeatherStat_Screen.h"
-//#include <DS3231.h>
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
 #define STATE_SAVE_PERIOD UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
 /////////////################# variables #####################////////////////
-//char daysOfTheWeek[7][12] = {"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"};
 const byte led_gpio = 13; // the PWM pin the LED is attached to
 int PWMchannel = 0;
 int i = 0;
 char flag=0;
-//const char * intro = "Time[ms],r_t[°C],p[hPa],r_hum[%],gas[Ohm],IAQ,IAQacc,temp[°C],h[%],S_IAQ,CO2_equ,bre_VOC,Gas%";
-const char * intro = "Time[ms],p[hPa],gas[Ohm],IAQ,temp[°C],h[%],CO2_equ,CO2,bre_VOC,Gas%,stabSta,runInSta";
 uint8_t bsec_config_iaq[] = {
 #include "config/generic_33v_3s_4d/bsec_iaq.txt"
 };
@@ -63,14 +48,14 @@ float varTemp, varPres, varHumi, varGasR, varCo2E, varBVoc, varGasP,varSiaq,varI
 int varIaqAcc, varStab, varRunI,   varSiaqAcc, varCo2eAcc;
 int varBVocAcc, varGasPAcc;
 float varCo2M=400.0;
-String cadena_envio,dateString;
+String cadena_envio,dateString,start_time;
+volatile int segundos=0;
 
 /////////////################# functions #####################////////////////
 void loop4(void *parameter);
+void loop3(void *parameter);
 void loop2(void *parameter);
 void loop1(void *parameter);
-void feedTheDog(void);
-void hw_wdt_disable(void);
 void checkIaqSensorStatus(void);
 void loadState(void);
 void updateState(void);
@@ -81,16 +66,16 @@ void handleWebRequests();
 void dataSensorRequest(void);
 void JsonStringFormat(void);
 void LCD_vars();
-
+void IRAM_ATTR isr();
 /////////////################# handlers definition #####################///////
 /////////////################# Web Specific #####################///////
-// char *ssid = "FRITZ!Box 6591 Cable SW";         // replace with your SSID
-// char *password = "62407078731195560963";
-char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
-char *password = "07225443701792235194";  // replace with your Password
+char *ssid = "FRITZ!Box 6591 Cable SW";         // Daniel
+char *password = "62407078731195560963";
+// char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
+// char *password = "07225443701792235194";  // replace with your Password
 //char *ssid = "Vodafone-FC6F = FRITZ!Box 6591 Cable BE";          // replace with your SSID/char *password = "07225443701792235194";  // replace with your Password";          // replace with your SSID
-//char *password = "pW6298625330626571";  // replace with your Password
-// AsyncWebServer server(80);
+//char *password = "pW6298625330626571";  //
+
 WebServer server(80);
 /////////////################# NTP Client Specific #####################///////
 const char* ntpServer = "pool.ntp.org";
@@ -99,54 +84,45 @@ const int daylightOffset_sec = 3600;   // There is one extra hour in DST
 /////////////################# Blynk  config ###################///////
 char auth[] = "DZJ5YStEBLYrOid9YuJH-Qm3QDPuy-Oe";    // token from the app
 BlynkTimer timer;
-int unoo=0;
 // data request on app time
 /////////////################# Blynk  variables ###################///////
 iaq_level property; // define the structure property for iaq level of the app
 /////////////################# CO2_sensor  config ###################///////
-
+volatile long current_time=0;
+volatile long StartLow = 0;
+volatile long StartHigh = 0;
+volatile long LowLevel=0;
+volatile long HighLevel=0;
+volatile bool NEW_DATA = false;
+volatile bool FIRST_TIME = false;
 /////////////################# Touch_LCD ###################///////
 clima_data var_data;
 wifiData wifiData_in_main;
-
 /////////////################# Arduino sh%& #####################///////////////
 TaskHandle_t Task4;
 TaskHandle_t Task3;
 TaskHandle_t Task2;
 TaskHandle_t Task1;
-//RTC_DS3231 rtc;
 Bsec iaqSensor;
 /////////////################# SETUP #####################////////////////
 void setup() {
         Serial.begin(115200);
         Wire.begin();
-/////RTC begin and check
-        // if (!rtc.begin()) {
-        //         Serial.println("Couldn't find RTC");
-        //         while (1);
-        // }
-        // else{
-        //         rtc.adjust(DateTime(__DATE__, __TIME__));
-        //         Serial.println("RTC Found");
-        // }
-
 ///SPIFSSS begin and check
         if(!SPIFFS.begin()) {
                 Serial.println("An Error has occurred while mounting SPIFFS");
                 return;
         }
         else Serial.println("SPIFFS Mounted correctly");
-
-/////PWM Settings
-        ledcAttachPin(led_gpio, PWMchannel); // assign a led pins to a channel
-        ledcSetup(PWMchannel, 10000, 10); // 12 kHz PWM, 8-bit resolution
-
 ////// Wifi Configs
         WiFi.begin(ssid, password);
+        int k = 0;
         while (WiFi.status() != WL_CONNECTED)
         {
                 delay(1000);
                 Serial.println("Connecting to WiFi (setup)...");
+                k++;
+                if(k == 10) ESP.restart();
         }
         Serial.print("\nConnected to the WiFi network: ");
         Serial.println(WiFi.SSID());
@@ -155,21 +131,17 @@ void setup() {
 ////// Blynk begin config
         Blynk.begin(auth, ssid, password);
         timer.setInterval(1000L, myTimerEvent);
-////// Config for readding CO2_sensor
-        pinMode(MHZ19_PWM_PIN, INPUT);        //MHZ19 PWM Pin als Eingang konfigurieren
 //////// Screen initialization
-
         screen_setup();
 /////Initialize BME680 Sensor
         configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-
 /////Initialize BME680 Sensor
         iaqSensor.begin(BME680_I2C_ADDR_SECONDARY, Wire);
         output = "\nBSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix);
         Serial.println(output);
-        //checkIaqSensorStatus();
+        checkIaqSensorStatus();
         iaqSensor.setState(bsec_config_iaq);
-        //checkIaqSensorStatus();
+        checkIaqSensorStatus();
         loadState();
 
         bsec_virtual_sensor_t sensorList[Number_susc_sens] = {
@@ -189,17 +161,17 @@ void setup() {
         };
         iaqSensor.updateSubscription(sensorList, Number_susc_sens, BSEC_SAMPLE_RATE_LP);
         checkIaqSensorStatus();
-        //Serial.println("------### Entrando en loops");
-/////Enabling Multicore program execution
-        xTaskCreatePinnedToCore(loop1,"Task_1",5120,NULL,1,&Task1,1);
+/////Task configuration FreeRTOS
+        xTaskCreatePinnedToCore(loop1,"Task_1",15000,NULL,1,&Task1,1);
         delay(500);
-        xTaskCreatePinnedToCore(loop2,"Task_2",5120,NULL,1,&Task2,0);
+        xTaskCreatePinnedToCore(loop2,"Task_2",15000,NULL,1,&Task2,0);
         delay(500);
-        xTaskCreatePinnedToCore(loop4,"Task_4",10000,NULL,1,&Task4,0);
+        xTaskCreatePinnedToCore(loop3,"Task_3",20000,NULL,1,&Task3,0);
         delay(500);
-        //hw_wdt_disable();
+        xTaskCreatePinnedToCore(loop4,"Task_4",15000,NULL,1,&Task4,0);
+        delay(500);
 
-/////Handlers
+/////Web Handlers
         server.on("/", handleRoot);
         server.on("/info", [](){
                 server.send(200, "application/json", cadena_envio);
@@ -219,34 +191,18 @@ void setup() {
 /////Initialize Server
         server.onNotFound(handleWebRequests);
         server.begin();// begin server
-
-}
-/////////////################# LOOP Executed in Core 0 #####################////////////////
-void loop2(void *parameter) {
-
-        while(1) {
-                //yield();
-                // Blynk.run(); // run code of the app
-                // timer.run();  // establishes comunication to the app in a time interval to load sensor data
-                //Serial.print("---### LOOP2");
-                //Serial.println(i);//
-                //unsigned long time_trigger = millis();
-                if (iaqSensor.run()) {   // If new data is available
-                        dataSensorRequest();
-                        JsonStringFormat();
-                        updateState();
-
-                } else {
-                        checkIaqSensorStatus();
-                }
-
-                server.handleClient();/// NO QUITAR!!!
-
-        }///////// main while loop
-
-
+/////Define starting time
+        start_time = getDatum(IN_LETTERS) +" "+getZeit();
+        Serial.println(start_time);
+        ////// Config for readding CO2_sensor
+        pinMode(MHZ19_PWM_PIN, INPUT);        //MHZ19 PWM Pin als Eingang konfigurieren
+        attachInterrupt(MHZ19_PWM_PIN, isr, CHANGE);
 }
 /////////////################# LOOP Executed in Core 1 #####################////////////////
+void loop(){
+  vTaskDelay(1);
+}
+/////////////################# Touchscreen LCD management #####################////////////////
 void loop1(void *parameter) {
         //call Screen handle
 
@@ -254,14 +210,14 @@ void loop1(void *parameter) {
         //Serial.println(i);//
         //yield();
         while(1) {
-          //hw_wdt_disable();
+                //hw_wdt_disable();
                 //Serial.println(" -----in loop 1");
                 //yield();
                 LCD_vars();
                 //Serial.println("  -Outside LCD_vars()");
                 //yield();
                 wifiData_in_main=screenHandler(var_data);
-              //  Serial.println("      -Outside screenHandler()");
+                //  Serial.println("      -Outside screenHandler()");
 //                strcpy(ssid,wifiData_in_main.wifiName_for_main);
 //                strcpy(password,wifiData_in_main.wifiPassword_for_main);+
                 //Serial.println(wifiData_in_main.wifiChangeFlag);
@@ -285,69 +241,67 @@ void loop1(void *parameter) {
                 else{
                         var_data.wifiSuccessfulFlag=LOW;
                 }
-                //delay(1);
-                //ledcWrite(PWMchannel, i);
-                //Serial.println(BSEC_MAX_STATE_BLOB_SIZE);
-              // char  l=0;
-              // l++;
-                // if (!flag) {
-                //         i++;
-                //         delay(1);
-                // }
-                //
-                // else{
-                //         i--;
-                //         delay(1);
-                // }
-                //
-                // if(i==1023) {
-                //         flag=1;
-                //         delay(75);
-                // }
-                // if(i==0) {
-                //         flag=0;
-                //         ledcWrite(PWMchannel, 0);
-                //         //yield();
-                //         delay(75);
-                //         //Serial.println("Loop1 says: Core "+String(xPortGetCoreID()));
-                // }
-        }
-        //Serial.println("####Saliendo loop()");//
+                vTaskDelay(1);
+        }//////// cierra while
 }
-/////////////################# LOOP2  #####################////////////////
+/////////////################# LOOP Executed in Core 0 #####################////////////////
+void loop2(void *parameter) {
+
+        while(true) {
+                if (iaqSensor.run()) {   // If new data is available
+                        dataSensorRequest();
+                        JsonStringFormat();
+                        updateState();
+                        //Serial.println("- Loop2 - BME680");
+                } else {
+                        checkIaqSensorStatus();
+                }
+                server.handleClient();/// NO QUITAR!!!
+                //vTaskDelay(1);
+        }///////// main while loop
+}
+/////////////################# LOOP3 CO2 Task #####################////////////////
 void loop3(void *parameter) {
- varCo2M = get_CO2_measure();
+        while(true) {
+              if(NEW_DATA){
+                //Serial.println("- Loop3 - CO2 calc");
+                //Serial.print("L->"+String(LowLevel));
+                varCo2M = get_CO2_measure(HighLevel,LowLevel);
+                //Serial.println(" H->"+String(HighLevel));
+                NEW_DATA = false;
+                }
+                vTaskDelay(1);
+        }
+/////////////################# funciton  #####################////////////////
 }
-/////////////################# LOOP3   #####################////////////////
+/////////////################# LOOP4 Blynk app Task #####################////////////////
 void loop4(void *parameter) {
-  while(true){
-    Blynk.run(); // run code of the app
-    timer.run(); // establishes comunication to the app in a time interval to load sensor data
-    delay(1);
+        while(true) {
+                 Blynk.run(); // run code of the app
+                 //timer.run(); // establishes comunication to the app in a time interval to load sensor data
+                 myTimerEvent();
+                 //Serial.println("- Loop4 - Blink stuff");
+                 vTaskDelay(3000);
+        }
+}
+/////////////################# funciton  #####################////////////////
+void IRAM_ATTR isr() {
+
+  current_time=micros();
+  if( digitalRead(MHZ19_PWM_PIN) == HIGH ){
+    LowLevel = current_time - StartLow;
+    HighLevel = StartLow - StartHigh;
+    StartHigh = current_time;
+    NEW_DATA = true;
   }
+  else{
+    StartLow = current_time;
+  }
+
 }
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
-void loop(){
-        //Blynk.run(); // run code of the app
-        //timer.run(); // establishes comunication to the app in a time interval to load sensor data
-}
-/////////////################# funciton  #####################////////////////
-void feedTheDog(){
-        // TODO _u have to make something here
-        // TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-        // TIMERG0.wdt_feed=1;                       // feed dog
-        // TIMERG0.wdt_wprotect=0;                   // write protect
-        // // feed dog 1
-        // TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-        // TIMERG1.wdt_feed=1;                       // feed dog
-        // TIMERG1.wdt_wprotect=0;                   // write protect
-}
-/////////////################# funciton  #####################////////////////
-void hw_wdt_disable(){
-        *((volatile uint32_t*) 0x60000900) &= ~(1); // Hardware WDT OFF
-}
 /////////////################# funciton  #####################////////////////
 void checkIaqSensorStatus(void)
 {
@@ -355,11 +309,13 @@ void checkIaqSensorStatus(void)
                 if (iaqSensor.status < BSEC_OK) {
                         output = "BSEC error code : " + String(iaqSensor.status);
                         Serial.println(output);
+                        vTaskDelay(1000);
                         //for (;;);
                         //errLeds(); /* Halt in case of failure */
                 } else {
                         output = "BSEC warning code : " + String(iaqSensor.status);
                         Serial.println(output);
+                        vTaskDelay(1000);
                 }
         }
 
@@ -367,9 +323,11 @@ void checkIaqSensorStatus(void)
                 if (iaqSensor.bme680Status < BME680_OK) {
                         output = "BME680 error code : " + String(iaqSensor.bme680Status);
                         Serial.println(output);
+                        vTaskDelay(1000);
                 } else {
                         output = "BME680 warning code : " + String(iaqSensor.bme680Status);
                         Serial.println(output);
+                        vTaskDelay(1000);
                 }
         }
         //iaqSensor.status = BSEC_OK;
@@ -379,12 +337,15 @@ void loadState(void)
 {
         if (EEPROM.read(0) == BSEC_MAX_STATE_BLOB_SIZE) {
                 // Existing state in EEPROM
+                Serial.println(dateString);
                 Serial.println("Reading state from EEPROM");
 
                 for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++) {
                         bsecState[i] = EEPROM.read(i + 1);
                         Serial.println(bsecState[i], HEX);
+                        Serial.print(" ");
                 }
+                Serial.println("------");
 
                 iaqSensor.setState(bsecState);
                 checkIaqSensorStatus();
@@ -420,14 +381,15 @@ void updateState(void)
         if (update) {
                 iaqSensor.getState(bsecState);
                 checkIaqSensorStatus();
-
+                Serial.println(dateString);
                 Serial.println("Writing state to EEPROM");
 
                 for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++) {
                         EEPROM.write(i + 1, bsecState[i]);
-                        Serial.println(bsecState[i], HEX);
+                        Serial.print(bsecState[i], HEX);
+                        Serial.print(" ");
                 }
-
+                Serial.println("------");
                 EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE);
                 EEPROM.commit();
         }
@@ -453,7 +415,6 @@ void myTimerEvent()
         Blynk.virtualWrite(V23,getDatum(IN_NUMBERS));
         Blynk.virtualWrite(V21,wifiData_in_main.wifiName_for_main);
         Blynk.virtualWrite(V22,wifiData_in_main.wifiPassword_for_main);                      //sends date
-
         // and the engineer saw that the code..
         //                                                ...it was mehhh...
 }//
@@ -523,10 +484,8 @@ void handleWebRequests()
         message += "\n";
 
         for(uint8_t i=0; i<server.args(); i++)
-
-
         {
-          message += " NAME:"+server.argName(i) + "\n VALUE:" + server.arg(i) + "\n";
+                message += " NAME:"+server.argName(i) + "\n VALUE:" + server.arg(i) + "\n";
         }
 
         server.send(404, "text/plain", message);
@@ -554,12 +513,11 @@ void dataSensorRequest(){
         varGasPAcc  =  iaqSensor.gasPercentageAcccuracy;
 
 
-
 }
 /////////////################# funciton  #####################////////////////
 void JsonStringFormat(){
 
-        cadena_envio = StartJS;//Initializer JSON chain
+        cadena_envio = StartJS;//Initializer JSON string
         cadena_envio += String(varTemp) + SpacerJS;//temp
         cadena_envio += String(varPres/100) + SpacerJS;//pres
         cadena_envio += String(varHumi) + SpacerJS;//hum
@@ -578,8 +536,9 @@ void JsonStringFormat(){
         cadena_envio += messages_impact[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ Impact
         cadena_envio += messages_saction[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ Suggested actions
         cadena_envio += messages_iaqcolors[iaq_Index2Level(varIaq)]+ SpacerJS;
-        cadena_envio += messages_quality[iaq_Index2Level(varIaq)];//+ SpacerJS;
-        cadena_envio += StopJS;//Finalizer JSON chain
+        cadena_envio += messages_quality[iaq_Index2Level(varIaq)]+ SpacerJS;
+        cadena_envio += start_time;//+ SpacerJS;
+        cadena_envio += StopJS;//Finalizer JSON string
 
 }
 /////////////################# funciton to print values on screnn  #####################////////////////
@@ -593,39 +552,3 @@ void JsonStringFormat(){
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
-//&Serial.println(cadena_envio);
-// output = dateString;
-// output += ", " + String(varPres/100);
-// output += ", " + String(varGasR);
-// output += ", " + String(varIaq);
-// output += ", " + String(varTemp);
-// output += ", " + String(varHumi);
-// output += ", " + String(varCo2E);
-// output += ", " + String(varCo2M);
-// output += ", " + String(varBVoc);
-// output += ", " + String(varGasP);
-// output += ", " + String(varStab);
-// output += ", " + String(varRunI);
-//
-// Serial.println( getDatum(IN_NUMBERS) );
-// Serial.println(intro);
-// Serial.println(output);
-// Serial.println("Status: "+String( messages_runin_stat[varRunI] ));
-// Serial.println("IAQ = "+String(varIaq));
-// Serial.print(" Quality: ");
-// Serial.println( messages_quality[iaq_Index2Level(varIaq)]);
-// Serial.print(" Impact: ");
-// Serial.println(messages_impact[iaq_Index2Level(varIaq)]);
-// Serial.print(" Suggested action: ");
-// Serial.println(messages_saction[iaq_Index2Level(varIaq)]);
-// Serial.println("IAQ Accuracy = "+String(varIaqAcc));
-// Serial.println(messages_accuracy[varIaqAcc]);
-// Serial.print("IAQ_Static = "+String(varSiaq));
-// Serial.println(" IAQ_Static Accuracy = "+String(varSiaqAcc));
-// Serial.print("co2 = "+String(varCo2E)+" ppm");
-// Serial.println(" co2 Accuracy = "+String(varCo2eAcc));
-// Serial.print("breath-VOC = "+String(varBVoc)+" ppm");
-// Serial.println(" breath-VOC Accuracy = "+String(varBVocAcc));
-// Serial.print("Gas Percent = "+String(varGasP)+" %");
-// Serial.println(" Gas Percent Accuracy = "+String(varGasPAcc));
-// Serial.println(' ');
