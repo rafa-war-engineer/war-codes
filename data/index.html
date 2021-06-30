@@ -65,6 +65,9 @@
     <!-- ------- -->
   </nav>
 
+
+
+
   <!-- START MODAL ABOUT -->
   <div class="modal fade" id="myModalAbout">
     <div class="modal-dialog">
@@ -134,7 +137,7 @@
 
 
 
-
+  <p><small class="text-muted" id="start_time">-----</small></p>
 
 
 
@@ -482,8 +485,7 @@
       </a>
     </div>
   </div>
-  <!-- Termina carousel -->
-
+  <!-- Termina carousel --
   <!-- Empieza footer -->
   <div class="container-fluid pb-0 mb-0 justify-content-center text-light ">
 
@@ -866,6 +868,8 @@
       }
       elem = document.querySelector('#iaq_quality');
       array[2] != 'nan' ? elem.innerHTML = array[18] : elem.innerHTML = '---------';
+      elem = document.querySelector('#start_time');
+      array[2] != 'nan' ? elem.innerHTML = array[19] : elem.innerHTML = '---------';
       // elem = document.querySelector('#textdummy');
       // array[2] != 'nan' ? elem.innerHTML = 'D'+ array[19] : elem.innerHTML = '---------';
     });

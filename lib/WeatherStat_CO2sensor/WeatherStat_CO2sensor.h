@@ -37,7 +37,8 @@
 // difinitions for the ESP32 regarding the C02_sensor for the library
 #define MHZ19_PWM_PIN 34                // PWM Pin des MHZ19
 //#define MHZ19_MAX_PPM 5000              // Messbereich des MHZ19
-#define MHZ19_MAX_PPM 2000
+#define MHZ19_MAX_PPM 5000
+#define MHZ19_MAX_TIMEOUT 2000000
 //////////// end of definitions
 //////////////////////////////////  declaration of variables ////////////////////////////////////////////////////////////
 //unsigned long timeHigh;
@@ -46,7 +47,7 @@
 
 
 //////////////////////////////////  declaration of functions /////////////////////////////////////////////////////////////
-float get_CO2_measure();
+float get_CO2_measure(long timeHigh,long timeLow);
 #endif   // that goes allways it closes the library
 
 /////////////////////////////////  end of the library ////////////////////////////////////////////////////////////////
