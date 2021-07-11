@@ -7,7 +7,7 @@
  * @Last modified time: 2021-05-17T02:47:33+02:00
  * @License: CC by-sa
  */
-
+#include<Arduino.h>
  #ifndef WeatherStat_Messages_h
  #define WeatherStat_Messages_h
  String StartJS = "[\"";
@@ -81,4 +81,5 @@
  };
 
   uint8_t iaq_Index2Level(int index);
+  char * strcpy ( char * destination, String source );
  #endif   // that goes allways it closes the library
