@@ -24,15 +24,19 @@
 #include "time.h"
 #include <stdlib.h> //For future use in weather forecasting
 #include <stdio.h> //For future use in weather forecasting
+#include <string>
 #include <BlynkSimpleEsp32.h>
 #include "WeatherStat_NTP.h"
 #include "WeatherStat_BlynkApp.h"
 #include "WeatherStat_CO2sensor.h"
 #include "WeatherStat_Messages.h"
 #include "WeatherStat_Screen.h"
+#include "WeatherStat_Memory.h"
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
 #define STATE_SAVE_PERIOD UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
+#define DEBUG
+#define MAX_NUMBER_NETWORKS 10
 /////////////################# variables #####################////////////////
 const byte led_gpio = 13; // the PWM pin the LED is attached to
 int PWMchannel = 0;
@@ -48,9 +52,9 @@ float varTemp, varPres, varHumi, varGasR, varCo2E, varBVoc, varGasP,varSiaq,varI
 int varIaqAcc, varStab, varRunI,   varSiaqAcc, varCo2eAcc;
 int varBVocAcc, varGasPAcc;
 float varCo2M=400.0;
-String cadena_envio,dateString,start_time;
+String cadena_envio,dateString,start_time,fechaString;
 volatile int segundos=0;
-
+uint8_t number_net=0;
 /////////////################# functions #####################////////////////
 void loop4(void *parameter);
 void loop3(void *parameter);
@@ -71,11 +75,13 @@ void IRAM_ATTR isr();
 /////////////################# Web Specific #####################///////
 char *ssid = "FRITZ!Box 6591 Cable SW";         // Daniel
 char *password = "62407078731195560963";
+//String password = "62407078731195560963";
+//char passw2[30];
 // char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
 // char *password = "07225443701792235194";  // replace with your Password
 //char *ssid = "Vodafone-FC6F = FRITZ!Box 6591 Cable BE";          // replace with your SSID/char *password = "07225443701792235194";  // replace with your Password";          // replace with your SSID
 //char *password = "pW6298625330626571";  //
-
+WiFiClient my_client;
 WebServer server(80);
 /////////////################# NTP Client Specific #####################///////
 const char* ntpServer = "pool.ntp.org";
@@ -104,33 +110,106 @@ TaskHandle_t Task3;
 TaskHandle_t Task2;
 TaskHandle_t Task1;
 Bsec iaqSensor;
+enum NetCAses {NO_NETWORK,NET_FROM_MEM,NET_FROM_USR};
+NetCAses current_case;
 /////////////################# SETUP #####################////////////////
 void setup() {
+        char *temporalssid2;//defina una apuntador vacio de una cadena
+        char *temporalpw2;
+
         Serial.begin(115200);
         Wire.begin();
+        EEPROM.begin(512);
+        Serial.println("--------------------------------------");
+        Serial.println(String(ESP.getChipModel())+" "+String(ESP.getChipCores())+" Cores Running @ "+String(ESP.getCpuFreqMHz())+"MHz");
 ///SPIFSSS begin and check
         if(!SPIFFS.begin()) {
                 Serial.println("An Error has occurred while mounting SPIFFS");
                 return;
         }
         else Serial.println("SPIFFS Mounted correctly");
-////// Wifi Configs
-        WiFi.begin(ssid, password);
-        int k = 0;
-        while (WiFi.status() != WL_CONNECTED)
+
+////// Wifi Scannig networks
+        number_net = WiFi.scanNetworks();
+        for (int j=0; j<number_net; j++)//Print Networks
         {
-                delay(1000);
-                Serial.println("Connecting to WiFi (setup)...");
-                k++;
-                if(k == 10) ESP.restart();
+                Serial.print(j + 1);
+                Serial.print(": ");
+                Serial.println(WiFi.SSID(j));
         }
-        Serial.print("\nConnected to the WiFi network: ");
-        Serial.println(WiFi.SSID());
-        Serial.print("IP address:");
-        Serial.print(WiFi.localIP());
+        Serial.println(String(number_net+1)+": Usage with no network");//quitar
+        Serial.print("Selected option: ");
+        int selected_network=200;
+        String number;
+        /*Network select*/
+        do {
+                while(Serial.available()!=0)
+                {
+                        char recep = Serial.read();
+                        number = number + recep;
+                        if (recep==13) {
+                                selected_network = number.toInt();
+                                number="";
+                        }
+                }
+        } while(selected_network > (number_net+1) || selected_network<0);
+        if(selected_network <= number_net) {
+                String intercambio = WiFi.SSID(selected_network-1);//Asigna el nombre de la red seleccionada a variable
+                temporalssid2 = strcpy(temporalssid2,intercambio);//convierte cadena Ardunio a cadena cpp
+                Serial.println("Password:");
+                /*Passwor reception*/
+                bool Pass_received = false;
+                String passtempo="";
+                do {
+                        while(Serial.available()!=0)
+                        {
+                                char recep = Serial.read();
+                                if(int(recep)!=10)
+                                {
+                                        if (int(recep)==13) Pass_received=true;
+                                        else passtempo += recep;
+                                }
+                        }
+                } while(!Pass_received);
+                temporalpw2 = strcpy(temporalpw2, passtempo);
+
+////// Wifi Configs
+                WiFi.begin(temporalssid2, temporalpw2);
+                //WiFi.begin(ssid, password);
+                int k = 0;
+                while (WiFi.status() != WL_CONNECTED)
+                {
+                        delay(1000);
+                        Serial.println("Connecting to WiFi...");
+                        k++;
+                        if(k == 10) ESP.restart();
+                }
+
+                Serial.print("\nConnected to the WiFi network: ");
+                Serial.println(WiFi.SSID());
+                Serial.print("IP address:");
+                Serial.println(WiFi.localIP());
+        }
+        else{
+                Serial.println("Offline mode generating own network with IP:");
+                WiFi.mode(WIFI_MODE_APSTA);
+                String name="WheatherStat_AP";
+                String passwort = "123456789";
+                strcpy(temporalssid2,name);
+                strcpy(temporalpw2,passwort);
+                WiFi.softAP("WheatherStat_AP",NULL,1,0,4);
+//WiFi.softAP(const char *ssid, optional const char *passphrase = NULL, optional int channel = 1, optional int ssid_hidden = 0, optional int max_connection = 4)
+//WiFi.softAPConfig(IPAddress local_ip, IPAddress gateway, IPAddress subnet);
+                Serial.println(WiFi.softAPIP());
+                dateString="Time na.";
+                fechaString = "Date na.";
+        }
 ////// Blynk begin config
-        Blynk.begin(auth, ssid, password);
-        timer.setInterval(1000L, myTimerEvent);
+
+       //Blynk.begin(auth, temporalssid2, temporalpw2);
+        free(temporalssid2);
+        free(temporalpw2);
+        //timer.setInterval(1000L, myTimerEvent);//Verificar esto con la app
 //////// Screen initialization
         screen_setup();
 /////Initialize BME680 Sensor
@@ -192,15 +271,19 @@ void setup() {
         server.onNotFound(handleWebRequests);
         server.begin();// begin server
 /////Define starting time
+        if(WiFi.status() == WL_CONNECTED)
         start_time = getDatum(IN_LETTERS) +" "+getZeit();
+        #ifdef DEBUG
+        if(WiFi.status() == WL_CONNECTED)
         Serial.println(start_time);
+        #endif
         ////// Config for readding CO2_sensor
         pinMode(MHZ19_PWM_PIN, INPUT);        //MHZ19 PWM Pin als Eingang konfigurieren
         attachInterrupt(MHZ19_PWM_PIN, isr, CHANGE);
 }
 /////////////################# LOOP Executed in Core 1 #####################////////////////
 void loop(){
-  vTaskDelay(1);
+        vTaskDelay(1);
 }
 /////////////################# Touchscreen LCD management #####################////////////////
 void loop1(void *parameter) {
@@ -263,12 +346,12 @@ void loop2(void *parameter) {
 /////////////################# LOOP3 CO2 Task #####################////////////////
 void loop3(void *parameter) {
         while(true) {
-              if(NEW_DATA){
-                //Serial.println("- Loop3 - CO2 calc");
-                //Serial.print("L->"+String(LowLevel));
-                varCo2M = get_CO2_measure(HighLevel,LowLevel);
-                //Serial.println(" H->"+String(HighLevel));
-                NEW_DATA = false;
+                if(NEW_DATA) {
+                        //Serial.println("- Loop3 - CO2 calc");
+                        //Serial.print("L->"+String(LowLevel));
+                        varCo2M = get_CO2_measure(HighLevel,LowLevel);
+                        //Serial.println(" H->"+String(HighLevel));
+                        NEW_DATA = false;
                 }
                 vTaskDelay(1);
         }
@@ -277,26 +360,28 @@ void loop3(void *parameter) {
 /////////////################# LOOP4 Blynk app Task #####################////////////////
 void loop4(void *parameter) {
         while(true) {
-                 Blynk.run(); // run code of the app
-                 //timer.run(); // establishes comunication to the app in a time interval to load sensor data
-                 myTimerEvent();
-                 //Serial.println("- Loop4 - Blink stuff");
-                 vTaskDelay(3000);
+              if(WiFi.status()==WL_CONNECTED){
+                Blynk.run();  // run code of the app
+                //timer.run(); // establishes comunication to the app in a time interval to load sensor data
+                myTimerEvent();
+                }
+                //Serial.println("- Loop4 - Blink stuff");
+                vTaskDelay(3000);
         }
 }
 /////////////################# funciton  #####################////////////////
 void IRAM_ATTR isr() {
 
-  current_time=micros();
-  if( digitalRead(MHZ19_PWM_PIN) == HIGH ){
-    LowLevel = current_time - StartLow;
-    HighLevel = StartLow - StartHigh;
-    StartHigh = current_time;
-    NEW_DATA = true;
-  }
-  else{
-    StartLow = current_time;
-  }
+        current_time=micros();
+        if( digitalRead(MHZ19_PWM_PIN) == HIGH ) {
+                LowLevel = current_time - StartLow;
+                HighLevel = StartLow - StartHigh;
+                StartHigh = current_time;
+                NEW_DATA = true;
+        }
+        else{
+                StartLow = current_time;
+        }
 
 }
 /////////////################# funciton  #####################////////////////
@@ -335,6 +420,7 @@ void checkIaqSensorStatus(void)
 /////////////################# funciton  #####################////////////////
 void loadState(void)
 {
+        //Serial.println("EEMPROM[0]="+String(EEPROM.read(0)));
         if (EEPROM.read(0) == BSEC_MAX_STATE_BLOB_SIZE) {
                 // Existing state in EEPROM
                 Serial.println(dateString);
@@ -342,10 +428,10 @@ void loadState(void)
 
                 for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++) {
                         bsecState[i] = EEPROM.read(i + 1);
-                        Serial.println(bsecState[i], HEX);
+                        Serial.print(bsecState[i], HEX);
                         Serial.print(" ");
                 }
-                Serial.println("------");
+                Serial.println(" ");
 
                 iaqSensor.setState(bsecState);
                 checkIaqSensorStatus();
@@ -390,7 +476,7 @@ void updateState(void)
                         Serial.print(" ");
                 }
                 Serial.println("------");
-                EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE);
+                EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE );
                 EEPROM.commit();
         }
 
@@ -411,8 +497,8 @@ void myTimerEvent()
         Blynk.setProperty(V27,"color",property.LED_color);                    //sends led color
         Blynk.virtualWrite(V27,property.LED_intensity);                       //sends led intensity
         Blynk.virtualWrite(V26,property.iaq_level_description);               //sends iaq description
-        Blynk.virtualWrite(V24,getZeit());                                    // sends time
-        Blynk.virtualWrite(V23,getDatum(IN_NUMBERS));
+        Blynk.virtualWrite(V24,dateString);                                    // sends time
+        Blynk.virtualWrite(V23,fechaString);
         Blynk.virtualWrite(V21,wifiData_in_main.wifiName_for_main);
         Blynk.virtualWrite(V22,wifiData_in_main.wifiPassword_for_main);                      //sends date
         // and the engineer saw that the code..
@@ -420,8 +506,9 @@ void myTimerEvent()
 }//
 ////////////////////Touch_LCD/////////////////////////////////////////////////////////
 void LCD_vars(){
-        var_data.date_for_LCD=getDatum(IN_NUMBERS);
-        var_data.time_for_LCD=getZeit();
+        var_data.date_for_LCD=fechaString;
+        //var_data.time_for_LCD=getZeit();
+        var_data.time_for_LCD=dateString;
         var_data.iaq_for_LCD=varIaq;
         var_data.temp_for_LCD=varTemp;
         var_data.co2_for_LCD=varCo2M;
@@ -494,7 +581,10 @@ void handleWebRequests()
 /////////////################# funciton  #####################////////////////
 void dataSensorRequest(){
 
+        if(WiFi.status() == WL_CONNECTED){
         dateString = getZeit();
+        fechaString = getDatum(IN_NUMBERS);
+        }
         varTemp = iaqSensor.temperature;
         varPres = iaqSensor.pressure;
         varHumi = iaqSensor.humidity;
@@ -521,7 +611,7 @@ void JsonStringFormat(){
         cadena_envio += String(varTemp) + SpacerJS;//temp
         cadena_envio += String(varPres/100) + SpacerJS;//pres
         cadena_envio += String(varHumi) + SpacerJS;//hum
-        cadena_envio += getDatum(IN_LETTERS)+" "+ dateString+ SpacerJS;//fecha
+        cadena_envio += fechaString+" "+ dateString+ SpacerJS;//fecha
         cadena_envio += messages_runin_stat[varRunI] +SpacerJS;//run in status
         cadena_envio += String(varCo2M) + SpacerJS; //co2 mess
         cadena_envio += String(varCo2E) + SpacerJS; //co2 stimation
