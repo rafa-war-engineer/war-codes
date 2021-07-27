@@ -864,7 +864,7 @@ float wifiGap=3.5;
         wifiData_to_main.wifiChangeFlag=LOW;
         k=0;
         slotNo=0;
-        l=wifiNoT;
+        l=wifiNoT+1;
         wifiPageN=0;
         while(l>8){
           l=l-8;
@@ -879,7 +879,7 @@ float wifiGap=3.5;
         tft.setCursor(0,0);
         tft.print("Choose Wifi:");
         if(k==wifiPageN){
-           l=wifiNoT-wifiPageN*8;
+           l=wifiNoT+1-wifiPageN*8;
         }
         else{
            l=8;
@@ -904,6 +904,7 @@ float wifiGap=3.5;
         if(touchFlag==HIGH) {
              touchFlag=LOW;
              oldTimeTouch_ms=millis();
+             oldTime_ms=millis();
              touchedFlag=HIGH;
         }
         timeChange=100;
@@ -914,6 +915,8 @@ float wifiGap=3.5;
                   touchY=touchY-wifiTDistance;
                   slotNo++;
              }
+             Serial.print("SlotNo: ");
+             Serial.println(slotNo);
              touchedFlag=LOW;
         }
         if(slotNo>=8){
@@ -923,17 +926,17 @@ float wifiGap=3.5;
              }
              wifiCaseVar=1;
         }
-        if(slotNo+wifiPageN*8>wifiNoT){
+        if(slotNo+wifiPageN*8>wifiNoT+1){
           slotNo=0;
         }
         if(slotNo>0) {
              wifiData_to_main.wifiNameNo_for_main=slotNo+wifiPageN*8;
         }
 
-        if(wifiData_to_main.wifiNameNo_for_main>0&&wifiData_to_main.wifiNameNo_for_main<wifiNoT){
+        if(wifiData_to_main.wifiNameNo_for_main>0&&wifiData_to_main.wifiNameNo_for_main<wifiNoT+1){
              wifiCaseVar=3;
         }
-        else if (millis()-oldTime_ms>30000||wifiData_to_main.wifiNameNo_for_main==wifiNoT){
+        else if (millis()-oldTime_ms>30000||wifiData_to_main.wifiNameNo_for_main==wifiNoT+1){
              wifiCaseVar=6;
         }
         break;
@@ -959,13 +962,18 @@ float wifiGap=3.5;
         tft.setTextColor(ILI9341_WHITE);
         tft.setTextSize(2);
         tft.setCursor(0,0);
-        tft.print("We reached case 5.");
-        delay(3000);
+        tft.print("Verifying");
         break;
      case 6:
         strcpy(wifiData_to_main.wifiPassword_for_main,"");
         wifiData_to_main.wifiChangeFlag=HIGH;
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.setTextSize(2);
+        tft.setCursor(0,0);
+        tft.print("Verifying.");
         wifiCaseVar=0;
+        break;
    }
    return(wifiData_to_main);
  }

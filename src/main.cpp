@@ -134,6 +134,9 @@ void setup() {
 
 ////// Wifi Scannig networks
         number_net = WiFi.scanNetworks();
+        if (number_net>39){
+          number_net=39;
+        }
         Serial.println(number_net);
         for (int j=0; j<number_net; j++)//Print Networks
         {
@@ -146,8 +149,7 @@ void setup() {
                 strcpy(wifiNameList[j],temp);
         }
         Serial.println(String(number_net+1)+": Usage with no network");//quitar
-        strcpy(wifiNameList[number_net],"Usage with no network");//quitar
-        screen_setup();
+        strcpy(wifiNameList[number_net],"Use without network");//quitar
 
 //Wifi selection in screen
 
@@ -166,6 +168,7 @@ void setup() {
                         }
                 }
         } while(selected_network > (number_net+1) || selected_network<0);*/
+        screen_setup();
         wifiData_in_main1.wifiChangeFlag=LOW;
         bool wifiFlag=LOW;
         while(wifiFlag==LOW){
@@ -229,8 +232,8 @@ void setup() {
 ////// Blynk begin config
 
        //Blynk.begin(auth, temporalssid2, temporalpw2);
-        free(temporalssid2);
-        free(temporalpw2);
+      //  free(temporalssid2);
+        //free(temporalpw2);
         //timer.setInterval(1000L, myTimerEvent);//Verificar esto con la app
 /////Initialize BME680 Sensor
         configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
