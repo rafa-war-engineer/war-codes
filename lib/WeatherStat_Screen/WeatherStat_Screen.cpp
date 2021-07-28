@@ -69,6 +69,7 @@ uint8_t oldInputCaseVar=0;
  * 3: decide on key
  * 4: decide on character
 */
+uint8_t wifiCaseVar=0;
 uint16_t ii=0;
 uint16_t xTotalPix=tft.width();         //240
 uint16_t yTotalPix=tft.height();        //320
@@ -126,16 +127,27 @@ bool enteringDoneFlag=LOW;                            //Flag to show that enteri
 uint16_t triangleEdge[2];                             //edges of the arrows shown on the keyboard
 uint8_t cursorPosX=0;
 uint8_t cursorPosY=0;
+uint16_t wifiTDistance=375;
+uint8_t wifiPageN=0;
+uint8_t slotNo=0;
+float wifiGap=3.5;
 ////////////////////////////////////////////////////////////////////////
  //initializing
 
  void screen_setup(){
  //Setting up SPI communication, the screen and the touchscreen
- SPI.begin(_sclk, _miso, _mosi);
- tft.begin();
- ts.begin();
- ts.setRotation(0);
- tft.setCursor(0,0);
+   SPI.begin(_sclk, _miso, _mosi);
+   tft.begin();
+   ts.begin();
+   ts.setRotation(0);
+   tft.setCursor(0,0);
+   tft.fillScreen(ILI9341_BLACK);
+   tft.setTextColor(ILI9341_WHITE);
+   tft.setTextSize(4);
+   strcpy(textContent,"Welcome.");
+   tft.setCursor((letterN[2]-strlen(textContent))*xLetterPix[2]/2,3*yLetterPix[1]);
+   tft.print(textContent);
+   delay(5000);
 
    //calculating xLetterPix and yLetterPix
    for( ii=0;ii<6;ii++){
@@ -771,10 +783,12 @@ uint8_t cursorPosY=0;
                                          strcpy(outputVar,inputVar);
                                          inputCaseVar=0;
                                          menuCaseVar=0;
+                                         wifiCaseVar=0;
                                  }
                                  else if(ii==11&&j==1) {
                                          inputCaseVar=0;
                                          enteringDoneFlag=HIGH;
+                                         wifiCaseVar=5;
                                          if(menuCaseVar==5) {
                                                  menuCaseVar=6;
                                          }
@@ -832,6 +846,137 @@ uint8_t cursorPosY=0;
          tft.print(lowerText);
  }
 
+
+ wifiData1 wifiSetup(char wifiList[40][40], uint8_t wifiNoT){
+   wifiData1 wifiData_to_main;
+   //detecting a touch and locating it
+   if(ts.tirqTouched()) {
+           if(ts.touched()) {
+                   TS_Point p=ts.getPoint();
+                   touchFlag=HIGH;
+                   touchXraw=p.x;
+                   touchYraw=p.y;
+           }
+   }
+   wifiData_to_main.wifiNameNo_for_main=0;
+   switch(wifiCaseVar){
+     case 0:
+        wifiData_to_main.wifiChangeFlag=LOW;
+        k=0;
+        slotNo=0;
+        l=wifiNoT+1;
+        wifiPageN=0;
+        while(l>8){
+          l=l-8;
+          wifiPageN++;
+        }
+        wifiCaseVar=1;
+        break;
+     case 1:
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.setTextSize(2);
+        tft.setCursor(0,0);
+        tft.print("Choose Wifi:");
+        if(k==wifiPageN){
+           l=wifiNoT+1-wifiPageN*8;
+        }
+        else{
+           l=8;
+        }
+        for(j=0;j<l;j++){
+            if(strlen(wifiList[j]+k*8)>20){
+              wifiGap=2;
+            }
+            else{
+              wifiGap=2.5;
+            }
+            tft.setCursor(0,(2*j+wifiGap)*yLetterPix[1]);
+            tft.print(wifiList[j+k*8]);
+        }
+        if(wifiNoT>=8){
+            tft.fillTriangle(xTotalPix/2-5,18.5*yLetterPix[1],xTotalPix/2+5,18.5*yLetterPix[1],xTotalPix/2,18.5*yLetterPix[1]+10,ILI9341_WHITE);
+        }
+        wifiCaseVar=2;
+        oldTime_ms=millis();
+        break;
+     case 2:
+        if(touchFlag==HIGH) {
+             touchFlag=LOW;
+             oldTimeTouch_ms=millis();
+             oldTime_ms=millis();
+             touchedFlag=HIGH;
+        }
+        timeChange=100;
+        if(millis()-oldTimeTouch_ms>=timeChange&&touchedFlag==HIGH) {
+             touchY=touchYraw;
+             slotNo=0;
+             while(touchY>wifiTDistance){
+                  touchY=touchY-wifiTDistance;
+                  slotNo++;
+             }
+             Serial.print("SlotNo: ");
+             Serial.println(slotNo);
+             touchedFlag=LOW;
+        }
+        if(slotNo>=8){
+             k++;
+             if(k>wifiPageN){
+               k=0;
+             }
+             wifiCaseVar=1;
+        }
+        if(slotNo+wifiPageN*8>wifiNoT+1){
+          slotNo=0;
+        }
+        if(slotNo>0) {
+             wifiData_to_main.wifiNameNo_for_main=slotNo+wifiPageN*8;
+        }
+
+        if(wifiData_to_main.wifiNameNo_for_main>0&&wifiData_to_main.wifiNameNo_for_main<wifiNoT+1){
+             wifiCaseVar=3;
+        }
+        else if (millis()-oldTime_ms>30000||wifiData_to_main.wifiNameNo_for_main==wifiNoT+1){
+             wifiCaseVar=6;
+        }
+        break;
+     case 3:
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.setTextSize(2);
+        tft.setCursor(0,0);
+        tft.print("Enter Password:");
+        wifiCaseVar=4;
+        inputCaseVar=0;
+        strcpy(oldWifiPassword,wifiPassword);
+        break;
+     case 4:
+        strcpy(wifiPassword,keyboard(oldWifiPassword));
+        newTime_ms=millis();
+        break;
+     case 5:
+        strcpy(wifiData_to_main.wifiPassword_for_main,wifiPassword);
+        wifiData_to_main.wifiChangeFlag=HIGH;
+        wifiCaseVar=0;
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.setTextSize(2);
+        tft.setCursor(0,0);
+        tft.print("Verifying");
+        break;
+     case 6:
+        strcpy(wifiData_to_main.wifiPassword_for_main,"");
+        wifiData_to_main.wifiChangeFlag=HIGH;
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.setTextSize(2);
+        tft.setCursor(0,0);
+        tft.print("Verifying.");
+        wifiCaseVar=0;
+        break;
+   }
+   return(wifiData_to_main);
+ }
 
  //Welcome///////////////////////////////////////////////////////////
  /*void welcome(){

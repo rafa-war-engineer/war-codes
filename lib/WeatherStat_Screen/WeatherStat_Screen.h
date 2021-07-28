@@ -74,12 +74,20 @@ struct wifiData{
   char wifiPassword_for_main[40];
   bool wifiChangeFlag=LOW;
 };
+
+struct wifiData1{
+  uint8_t wifiNameNo_for_main;
+  char wifiPassword_for_main[40];
+  bool wifiChangeFlag=LOW;
+};
+
 ////////////////////////////////////////////////////////////////////
 void screen_setup();
 wifiData screenHandler(clima_data data_var);
 void drawBox(bool leftOrRight, char* boxContent);
 void keyOfKeyboard(uint16_t xNumber, uint16_t yNumber, char* upperText, char* lowerText);
 char* keyboard(char* inputVar);
+wifiData1 wifiSetup(char wifiList[40][40],uint8_t wifiNoT);
 
 ///////////////////////////////////////////////////////
 

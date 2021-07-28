@@ -55,6 +55,7 @@ float varCo2M=400.0;
 String cadena_envio,dateString,start_time,fechaString;
 volatile int segundos=0;
 uint8_t number_net=0;
+char wifiNameList[40][40];
 /////////////################# functions #####################////////////////
 void loop4(void *parameter);
 void loop3(void *parameter);
@@ -73,8 +74,8 @@ void LCD_vars();
 void IRAM_ATTR isr();
 /////////////################# handlers definition #####################///////
 /////////////################# Web Specific #####################///////
-char *ssid = "FRITZ!Box 6591 Cable SW";         // Daniel
-char *password = "62407078731195560963";
+//char *ssid = "FRITZ!Box 6591 Cable SW";         // Daniel
+//char *password = "62407078731195560963";
 //String password = "62407078731195560963";
 //char passw2[30];
 // char *ssid = "FRITZ!Box 6591 Cable BE";          // replace with your SSID
@@ -104,6 +105,7 @@ volatile bool FIRST_TIME = false;
 /////////////################# Touch_LCD ###################///////
 clima_data var_data;
 wifiData wifiData_in_main;
+wifiData1 wifiData_in_main1;
 /////////////################# Arduino sh%& #####################///////////////
 TaskHandle_t Task4;
 TaskHandle_t Task3;
@@ -114,6 +116,7 @@ enum NetCAses {NO_NETWORK,NET_FROM_MEM,NET_FROM_USR};
 NetCAses current_case;
 /////////////################# SETUP #####################////////////////
 void setup() {
+  //////// Screen initialization
         char *temporalssid2;//defina una apuntador vacio de una cadena
         char *temporalpw2;
 
@@ -131,18 +134,30 @@ void setup() {
 
 ////// Wifi Scannig networks
         number_net = WiFi.scanNetworks();
+        if (number_net>39){
+          number_net=39;
+        }
+        Serial.println(number_net);
         for (int j=0; j<number_net; j++)//Print Networks
         {
                 Serial.print(j + 1);
                 Serial.print(": ");
                 Serial.println(WiFi.SSID(j));
+                char temp[30];
+                String tempStr=WiFi.SSID(j);
+                tempStr.toCharArray(temp,(tempStr.length()+1));
+                strcpy(wifiNameList[j],temp);
         }
         Serial.println(String(number_net+1)+": Usage with no network");//quitar
-        Serial.print("Selected option: ");
+        strcpy(wifiNameList[number_net],"Use without network");//quitar
+
+//Wifi selection in screen
+
+        Serial.println("Selected option: ");
         int selected_network=200;
         String number;
         /*Network select*/
-        do {
+        /*do {
                 while(Serial.available()!=0)
                 {
                         char recep = Serial.read();
@@ -152,13 +167,22 @@ void setup() {
                                 number="";
                         }
                 }
-        } while(selected_network > (number_net+1) || selected_network<0);
+        } while(selected_network > (number_net+1) || selected_network<0);*/
+        screen_setup();
+        wifiData_in_main1.wifiChangeFlag=LOW;
+        bool wifiFlag=LOW;
+        while(wifiFlag==LOW){
+                wifiData_in_main1=wifiSetup(wifiNameList,number_net);
+                wifiFlag=wifiData_in_main1.wifiChangeFlag;
+        }
+        selected_network=wifiData_in_main1.wifiNameNo_for_main;
         if(selected_network <= number_net) {
-                String intercambio = WiFi.SSID(selected_network-1);//Asigna el nombre de la red seleccionada a variable
-                temporalssid2 = strcpy(temporalssid2,intercambio);//convierte cadena Ardunio a cadena cpp
-                Serial.println("Password:");
+//                String intercambio = WiFi.SSID(selected_network-1);//Asigna el nombre de la red seleccionada a variable
+//                temporalssid2 = strcpy(temporalssid2,intercambio);//convierte cadena Ardunio a cadena cpp
+                int wifiNo=wifiData_in_main1.wifiNameNo_for_main;
+                temporalssid2=wifiNameList[wifiNo];
                 /*Passwor reception*/
-                bool Pass_received = false;
+/*                bool Pass_received = false;
                 String passtempo="";
                 do {
                         while(Serial.available()!=0)
@@ -170,9 +194,10 @@ void setup() {
                                         else passtempo += recep;
                                 }
                         }
-                } while(!Pass_received);
-                temporalpw2 = strcpy(temporalpw2, passtempo);
+                } while(!Pass_received);*/
 
+                temporalpw2 = wifiData_in_main1.wifiPassword_for_main;
+                //strcpy(temporalpw2,wifiData_in_main1.wifiPassword_for_main);
 ////// Wifi Configs
                 WiFi.begin(temporalssid2, temporalpw2);
                 //WiFi.begin(ssid, password);
@@ -207,11 +232,9 @@ void setup() {
 ////// Blynk begin config
 
        //Blynk.begin(auth, temporalssid2, temporalpw2);
-        free(temporalssid2);
-        free(temporalpw2);
+      //  free(temporalssid2);
+        //free(temporalpw2);
         //timer.setInterval(1000L, myTimerEvent);//Verificar esto con la app
-//////// Screen initialization
-        screen_setup();
 /////Initialize BME680 Sensor
         configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 /////Initialize BME680 Sensor
