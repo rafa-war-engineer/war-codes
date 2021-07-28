@@ -140,7 +140,6 @@ void setup() {
         if (number_net>39){
           number_net=39;
         }
-        Serial.println(number_net);
         for (int j=0; j<number_net; j++)//Print Networks
         {
                 Serial.print(j + 1);
@@ -179,13 +178,11 @@ void setup() {
         }
         wifiFlag=LOW;
         selected_network=wifiData_in_main1.wifiNameNo_for_main;
-        Serial.println(selected_network);
         if(selected_network <= number_net) {
 //                String intercambio = WiFi.SSID(selected_network-1);//Asigna el nombre de la red seleccionada a variable
 //                temporalssid2 = strcpy(temporalssid2,intercambio);//convierte cadena Ardunio a cadena cpp
                 int wifiNo=wifiData_in_main1.wifiNameNo_for_main;
                 temporalssid2=wifiNameList[wifiNo];
-                Serial.println(temporalssid2);
                 /*Passwor reception*/
 /*                bool Pass_received = false;
                 String passtempo="";
@@ -361,6 +358,7 @@ void loop1(void *parameter) {
 //                strcpy(password,wifiData_in_main.wifiPassword_for_main);+
                 //Serial.println(wifiData_in_main.wifiChangeFlag);
                 if(wifiFlag==HIGH) {
+                        wifiFlag=LOW;
                         char *temporalssid2;//defina una apuntador vacio de una cadena
                         char *temporalpw2;
 
@@ -368,6 +366,10 @@ void loop1(void *parameter) {
                         temporalssid2=wifiNameList[wifiData_in_main1.wifiNameNo_for_main];
 
                         temporalpw2 = wifiData_in_main1.wifiPassword_for_main;
+                        Serial.print("name: ");
+                        Serial.println(temporalssid2);
+                        Serial.print("pw: ");
+                        Serial.println(temporalpw2);
                         //strcpy(temporalpw2,wifiData_in_main1.wifiPassword_for_main);
         ////// Wifi Configs
                         WiFi.begin(temporalssid2, temporalpw2);
