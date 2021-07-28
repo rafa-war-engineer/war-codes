@@ -104,6 +104,9 @@ volatile bool NEW_DATA = false;
 volatile bool FIRST_TIME = false;
 /////////////################# Touch_LCD ###################///////
 clima_data var_data;
+bool wifiFlag=LOW;
+bool settingWifi=LOW;
+bool settingWifiOld=LOW;
 wifiData wifiData_in_main;
 wifiData1 wifiData_in_main1;
 /////////////################# Arduino sh%& #####################///////////////
@@ -170,17 +173,19 @@ void setup() {
         } while(selected_network > (number_net+1) || selected_network<0);*/
         screen_setup();
         wifiData_in_main1.wifiChangeFlag=LOW;
-        bool wifiFlag=LOW;
         while(wifiFlag==LOW){
                 wifiData_in_main1=wifiSetup(wifiNameList,number_net);
                 wifiFlag=wifiData_in_main1.wifiChangeFlag;
         }
+        wifiFlag=LOW;
         selected_network=wifiData_in_main1.wifiNameNo_for_main;
+        Serial.println(selected_network);
         if(selected_network <= number_net) {
 //                String intercambio = WiFi.SSID(selected_network-1);//Asigna el nombre de la red seleccionada a variable
 //                temporalssid2 = strcpy(temporalssid2,intercambio);//convierte cadena Ardunio a cadena cpp
                 int wifiNo=wifiData_in_main1.wifiNameNo_for_main;
                 temporalssid2=wifiNameList[wifiNo];
+                Serial.println(temporalssid2);
                 /*Passwor reception*/
 /*                bool Pass_received = false;
                 String passtempo="";
@@ -199,6 +204,9 @@ void setup() {
                 temporalpw2 = wifiData_in_main1.wifiPassword_for_main;
                 //strcpy(temporalpw2,wifiData_in_main1.wifiPassword_for_main);
 ////// Wifi Configs
+                Serial.println(temporalssid2);
+                Serial.println("Password:");
+                Serial.println(temporalpw2);
                 WiFi.begin(temporalssid2, temporalpw2);
                 //WiFi.begin(ssid, password);
                 int k = 0;
@@ -322,14 +330,47 @@ void loop1(void *parameter) {
                 LCD_vars();
                 //Serial.println("  -Outside LCD_vars()");
                 //yield();
-                wifiData_in_main=screenHandler(var_data);
+                settingWifiOld=settingWifi;
+                settingWifi=screenHandler(var_data);
+                if(settingWifi==HIGH){
+                        if(settingWifiOld==LOW){
+                          ////// Wifi Scannig networks
+                                  number_net = WiFi.scanNetworks();
+                                  if (number_net>39){
+                                    number_net=39;
+                                  }
+                                  Serial.println(number_net);
+                                  for (int j=0; j<number_net; j++)//Print Networks
+                                  {
+                                          Serial.print(j + 1);
+                                          Serial.print(": ");
+                                          Serial.println(WiFi.SSID(j));
+                                          char temp[30];
+                                          String tempStr=WiFi.SSID(j);
+                                          tempStr.toCharArray(temp,(tempStr.length()+1));
+                                          strcpy(wifiNameList[j],temp);
+                                  }
+                                  Serial.println(String(number_net+1)+": Usage with no network");//quitar
+                                  strcpy(wifiNameList[number_net],"Use without network");//quitar
+                        }
+                        wifiData_in_main1=wifiSetup(wifiNameList,number_net);
+                        wifiFlag=wifiData_in_main1.wifiChangeFlag;
+                }
                 //  Serial.println("      -Outside screenHandler()");
 //                strcpy(ssid,wifiData_in_main.wifiName_for_main);
 //                strcpy(password,wifiData_in_main.wifiPassword_for_main);+
                 //Serial.println(wifiData_in_main.wifiChangeFlag);
-                if(wifiData_in_main.wifiChangeFlag==HIGH) {
+                if(wifiFlag==HIGH) {
+                        char *temporalssid2;//defina una apuntador vacio de una cadena
+                        char *temporalpw2;
+
                         //Serial.println("          -inside   if(wifiData_in_main.wifiChangeFlag");
-                        WiFi.begin(wifiData_in_main.wifiName_for_main,wifiData_in_main.wifiPassword_for_main);
+                        temporalssid2=wifiNameList[wifiData_in_main1.wifiNameNo_for_main];
+
+                        temporalpw2 = wifiData_in_main1.wifiPassword_for_main;
+                        //strcpy(temporalpw2,wifiData_in_main1.wifiPassword_for_main);
+        ////// Wifi Configs
+                        WiFi.begin(temporalssid2, temporalpw2);
                         char j=0;
                         while ((WiFi.status() != WL_CONNECTED)&&j<4)
                         {

@@ -83,7 +83,7 @@ struct wifiData1{
 
 ////////////////////////////////////////////////////////////////////
 void screen_setup();
-wifiData screenHandler(clima_data data_var);
+bool screenHandler(clima_data data_var);
 void drawBox(bool leftOrRight, char* boxContent);
 void keyOfKeyboard(uint16_t xNumber, uint16_t yNumber, char* upperText, char* lowerText);
 char* keyboard(char* inputVar);
