@@ -185,7 +185,8 @@ float wifiGap=3.5;
  }
  ///////////////////////////
 
- wifiData screenHandler(clima_data data_var) {
+ bool screenHandler(clima_data data_var) {
+   bool wifiSetupFlag=LOW;
    struct wifiData my_wifiData;
          //detecting a touch and locating it
          if(ts.tirqTouched()) {
@@ -552,17 +553,9 @@ float wifiGap=3.5;
                                  oldTime_ms=millis();
                          }
                          break;
-                 //Prepare to enter Wifi name
+                 //Wifi setup
                  case 3:
-                         tft.fillScreen(ILI9341_BLACK);
-                         tft.setTextColor(ILI9341_WHITE);
-                         tft.setTextSize(2);
-                         tft.setCursor(0,0);
-                         tft.print("Enter WIFI:");
-                         menuCaseVar=5;
-                         inputCaseVar=0;
-                         strcpy(oldWifiName,wifiName);
-                         strcpy(oldWifiPassword,wifiPassword);
+                         wifiSetupFlag=HIGH;
                          break;
                  //Showing Necessary Actions
                  case 4:
@@ -653,7 +646,7 @@ float wifiGap=3.5;
          }
          strcpy(my_wifiData.wifiName_for_main,wifiName);
          strcpy(my_wifiData.wifiPassword_for_main,wifiPassword);
-         return(my_wifiData);
+         return(wifiSetupFlag);
  }
 
 
@@ -782,19 +775,12 @@ float wifiGap=3.5;
                                  else if(ii==9&&j==1) {
                                          strcpy(outputVar,inputVar);
                                          inputCaseVar=0;
-                                         menuCaseVar=0;
                                          wifiCaseVar=0;
                                  }
                                  else if(ii==11&&j==1) {
                                          inputCaseVar=0;
                                          enteringDoneFlag=HIGH;
                                          wifiCaseVar=5;
-                                         if(menuCaseVar==5) {
-                                                 menuCaseVar=6;
-                                         }
-                                         else {
-                                                 menuCaseVar=8;
-                                         }
                                  }
                                  else{
                                          tft.fillRect(strlen(outputVar)*xLetterPix[1],1.5*yLetterPix[1],2*xLetterPix[1],yLetterPix[1],ILI9341_BLACK);
@@ -858,9 +844,9 @@ float wifiGap=3.5;
                    touchYraw=p.y;
            }
    }
-   wifiData_to_main.wifiNameNo_for_main=0;
    switch(wifiCaseVar){
      case 0:
+        wifiData_to_main.wifiNameNo_for_main=0;
         wifiData_to_main.wifiChangeFlag=LOW;
         k=0;
         slotNo=0;
@@ -915,29 +901,27 @@ float wifiGap=3.5;
                   touchY=touchY-wifiTDistance;
                   slotNo++;
              }
-             Serial.print("SlotNo: ");
-             Serial.println(slotNo);
              touchedFlag=LOW;
         }
-        if(slotNo>=8){
+        if(slotNo>8){
              k++;
              if(k>wifiPageN){
                k=0;
              }
              wifiCaseVar=1;
         }
-        if(slotNo+wifiPageN*8>wifiNoT+1){
+        if(slotNo+k*8>wifiNoT){
           slotNo=0;
         }
         if(slotNo>0) {
-             wifiData_to_main.wifiNameNo_for_main=slotNo+wifiPageN*8;
+             wifiData_to_main.wifiNameNo_for_main=slotNo-1+k*8;
         }
-
-        if(wifiData_to_main.wifiNameNo_for_main>0&&wifiData_to_main.wifiNameNo_for_main<wifiNoT+1){
+        if(slotNo>0&&wifiData_to_main.wifiNameNo_for_main<wifiNoT+1){
              wifiCaseVar=3;
         }
         else if (millis()-oldTime_ms>30000||wifiData_to_main.wifiNameNo_for_main==wifiNoT+1){
              wifiCaseVar=6;
+             wifiData_to_main.wifiNameNo_for_main=wifiNoT+1;
         }
         break;
      case 3:
@@ -963,6 +947,10 @@ float wifiGap=3.5;
         tft.setTextSize(2);
         tft.setCursor(0,0);
         tft.print("Verifying");
+        wifiCaseVar=0;
+        if(menuCaseVar==3){
+          menuCaseVar=11;
+        }
         break;
      case 6:
         strcpy(wifiData_to_main.wifiPassword_for_main,"");
@@ -973,6 +961,9 @@ float wifiGap=3.5;
         tft.setCursor(0,0);
         tft.print("Verifying.");
         wifiCaseVar=0;
+        if(menuCaseVar==3){
+          menuCaseVar=11;
+        }
         break;
    }
    return(wifiData_to_main);
