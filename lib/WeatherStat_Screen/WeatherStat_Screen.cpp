@@ -916,10 +916,10 @@ float wifiGap=3.5;
         if(slotNo>0) {
              wifiData_to_main.wifiNameNo_for_main=slotNo-1+k*8;
         }
-        if(slotNo>0&&wifiData_to_main.wifiNameNo_for_main<wifiNoT+1){
+        if(slotNo>0&&wifiData_to_main.wifiNameNo_for_main<wifiNoT){
              wifiCaseVar=3;
         }
-        else if (millis()-oldTime_ms>30000||wifiData_to_main.wifiNameNo_for_main==wifiNoT+1){
+        else if (millis()-oldTime_ms>60000||wifiData_to_main.wifiNameNo_for_main==wifiNoT){
              wifiCaseVar=6;
              wifiData_to_main.wifiNameNo_for_main=wifiNoT+1;
         }
