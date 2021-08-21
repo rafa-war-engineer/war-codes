@@ -14,7 +14,7 @@
  String SpacerJS = "\",\"";
  String StopJS = "\"]";
 
-  char *messages_quality[] = {
+const char *messages_quality[] = {
    "Excellent",
    "Good",
    "Lightly polluted",
@@ -24,7 +24,7 @@
    "Extremely polluted"
  };
 
-  char *messages_impact [] = {
+const char *messages_impact [] = {
    "Best for well-being",
    "No impact on well-being",
    "Reduction of well-being possible",
@@ -34,7 +34,7 @@
    "Headaches, additional neurotoxic effects possible"
  };
  //
- char *messages_saction [] = {
+const char *messages_saction [] = {
    "No measures needed",
    "No measures needed",
    "Ventilation suggested",
@@ -44,7 +44,7 @@
    "Contamination needs to be identified, avoid presence and maximize ventilation"
  };
  //
-  char *messages_iaqcolors [] = {
+const char *messages_iaqcolors [] = {
    "#80E335",
    "#A5CF5B",
    "#FEFB3B",
@@ -63,23 +63,42 @@
  //   "5B3606"
  // };
  //
- char *messages_accuracy [] = {
+const char *messages_accuracy [] = {
    "Stabilization, run-in ongoing",
    "Low accuracy, auto-trimming on-going",
    "Medium accuracy, auto-trimming ongoing",
    "High accuracy"
  };
 
- char *messages_runin_stat[] = {
+const char *messages_runin_stat[] = {
    " Power-on stabilization ongoing",
    " Power-on stabilization finished"
  };
 
- char *messages_stab_stat[] = {
+const char *messages_stab_stat[] = {
    "Initial sensor stabilization ongoing",
    "Initial sensor stabilization finished"
  };
 
+const char *messages_co2_description[] = {
+   "Normal background concentration in outdoor ambient air",
+   "Concentrations typical of occupied indoor spaces with good air exchange",
+   "Complaints of drowsiness and poor air",
+   "Headaches, sleepiness and stagnant, stale, stuffy air. Poor concentration, loss of attention, increased heart rate and slight nausea may also be present"
+ };
+
+const char *messages_conn[] = {
+   "•Connected to network: ",
+   "•Wireless Access point: ",
+   " WheatherStat_AP",
+   "•IP: ",
+   "10.10.10.10",
+   "•Blynk App available",
+   "•Blynk App not available"
+ };
+
+  uint8_t co2_Level2Descrip(int level);
   uint8_t iaq_Index2Level(int index);
   char * strcpy ( char * destination, String source );
+  //char * strcpy(char * destination, char * source);
  #endif   // that goes allways it closes the library

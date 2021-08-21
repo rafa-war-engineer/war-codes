@@ -1,12 +1,4 @@
-/**
- * @Author: Rafael Aranda M.Sc Student FH Aachen- CIDESI <rafa>
- * @Date:   2021-27-04
- * @Email:  rafael.aranda@alumni.fh-aachen.de
- * @Filename: WeatherStat_BlynkApp.h
- * @Last modified by:   rafa
- * @Last modified time: 2021-27-04
- * @License: CC by-sa
- */
+
 //////////// Tutorial WeatherStat_Screen_h /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //
@@ -73,12 +65,14 @@ struct wifiData{
   char wifiName_for_main[40];
   char wifiPassword_for_main[40];
   bool wifiChangeFlag=LOW;
+  bool wifiTimeOut = LOW;
 };
 
 struct wifiData1{
   uint8_t wifiNameNo_for_main;
   char wifiPassword_for_main[40];
   bool wifiChangeFlag=LOW;
+  bool wifiTimeOut = LOW;
 };
 
 ////////////////////////////////////////////////////////////////////

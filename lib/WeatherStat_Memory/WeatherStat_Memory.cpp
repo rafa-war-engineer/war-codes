@@ -85,7 +85,20 @@ void CleanMemoryWifi(uint8_t anfang){
         size_t laenge_ssid = size_t(EEPROM.read(anfang));
         size_t laenge_passw = size_t(EEPROM.read(anfang+laenge_ssid+1));
         size_t stopc = laenge_ssid + laenge_passw +2;
+        if( stopc > 512 ) stopc = 512;
         for(size_t i=0; i<stopc; i++)
-                EEPROM.write(anfang + i, 0);
+                EEPROM.write(anfang + i, (uint8_t)255);
         EEPROM.commit();
+
+}
+
+size_t DataWifiMeM(uint8_t anfang)
+{
+        boolean ans;
+        if( int(EEPROM.read(anfang))==255 )
+                ans=false;
+        else
+                ans=true;
+        return ans;
+        // return size_t(EEPROM.read(anfang));
 }

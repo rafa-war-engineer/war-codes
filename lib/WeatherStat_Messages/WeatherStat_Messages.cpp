@@ -39,6 +39,15 @@ uint8_t iaq_Index2Level(int index){
 
 }
 
+uint8_t co2_Level2Descrip(int level){
+
+  if(level<=400)  return (uint8_t)0;
+  if(level<=1000) return (uint8_t)1;
+  if(level<=2000) return (uint8_t)2;
+  if(level<=5000) return (uint8_t)3;
+
+}
+
 char * strcpy ( char * destination, String source ){
 
   destination = (char*) calloc( source.length()+1,sizeof(char) );
@@ -48,3 +57,11 @@ char * strcpy ( char * destination, String source ){
           destination[source.length()]='\0';
   return destination;
 }
+
+// char * strcpy(char * destination, char * source){
+//   destination = (char*) calloc( strlen(source)+1,sizeof(char) );
+//   for(int i=0; i<strlen(source); i++)
+//           destination[i] = source[i];
+//           destination[strlen(source)]='\0';
+//   return destination;
+// }

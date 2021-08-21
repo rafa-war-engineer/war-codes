@@ -66,8 +66,6 @@
   </nav>
 
 
-
-
   <!-- START MODAL ABOUT -->
   <div class="modal fade" id="myModalAbout">
     <div class="modal-dialog">
@@ -135,14 +133,9 @@
 
   </div>
 
-
-
-  <p><small class="text-muted" id="start_time">-----</small></p>
-
-
+  <!-- <p><small class="text-muted" id="start_time">-----</small></p> -->
 
   <!-- ALERT BAR END -->
-
   <!-- QUITAR, EN LO QUE DESCUBRO COMO CAMBIAR EL COLOR -->
   <!-- <input type="hidden" id="iaq_color"> -->
   <!-- ************************************************ -->
@@ -176,11 +169,6 @@
 
                     </div>
           </div>
-
-
-
-
-
 
 
         <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
@@ -242,7 +230,7 @@
           <div class="card-body text-dark">
             <h2 class="card-title" id="co2_mess">xxx</h2>
             <!-- <h5 class="card-title" id="co2_stimation">xxx</h5> -->
-            <h6><strong>Action suggested:</strong></h6>
+            <h6><strong>Description:</strong></h6>
             <p id="co2_sugested">lllllll</p>
             <p class="card-title" id="co2_stimation">xxx</p>
             <!-- <h6 class="card-title" id="co2_accuracy">xxx</h6> -->
@@ -868,8 +856,8 @@
       }
       elem = document.querySelector('#iaq_quality');
       array[2] != 'nan' ? elem.innerHTML = array[18] : elem.innerHTML = '---------';
-      elem = document.querySelector('#start_time');
-      array[2] != 'nan' ? elem.innerHTML = array[19] : elem.innerHTML = '---------';
+      //elem = document.querySelector('#start_time');
+      //array[2] != 'nan' ? elem.innerHTML = array[19] : elem.innerHTML = '---------';
       // elem = document.querySelector('#textdummy');
       // array[2] != 'nan' ? elem.innerHTML = 'D'+ array[19] : elem.innerHTML = '---------';
     });
