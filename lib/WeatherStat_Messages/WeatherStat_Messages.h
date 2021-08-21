@@ -88,13 +88,13 @@ const char *messages_co2_description[] = {
  };
 
 const char *messages_conn[] = {
-   "•Connected to network: ",
-   "•Wireless Access point: ",
+   "-Connected to network: ",
+   "-Wireless Access point: ",
    " WheatherStat_AP",
-   "•IP: ",
+   "-IP: ",
    "10.10.10.10",
-   "•Blynk App available",
-   "•Blynk App not available"
+   "Blynk App available",
+   "Blynk App not available"
  };
 
   uint8_t co2_Level2Descrip(int level);

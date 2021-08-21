@@ -38,7 +38,7 @@
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
 #define STATE_SAVE_PERIOD UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
-#define DEBUG
+//#define DEBUG
 #define MAX_NUMBER_NETWORKS 10
 /////////////################# variables #####################////////////////
 const byte led_gpio = 13; // the PWM pin the LED is attached to
@@ -114,7 +114,7 @@ TaskHandle_t Task1;
 Bsec iaqSensor;
 enum NetCases {CHECK_MEM,MODE_WSTAT,NET_FROM_MEM,NET_FROM_USR,SEL_SCREEN,GO};
 NetCases current_case;
-enum netmode{CONNECTED_TO_INTERNET, WIRELESS_ACCESS_POINT};
+enum netmode {CONNECTED_TO_INTERNET, WIRELESS_ACCESS_POINT};
 netmode Network_status;
 /////////////################# SETUP #####################////////////////
 void setup() {
@@ -125,16 +125,24 @@ void setup() {
         Serial.begin(115200);
         Wire.begin();
         EEPROM.begin(512);
+        #ifdef DEBUG
         Serial.println("--------------------------------------");
         Serial.println(String(ESP.getChipModel())+" "+String(ESP.getChipCores())+" Cores Running @ "+String(ESP.getCpuFreqMHz())+"MHz");
+        #endif
 ///SPIFSSS begin and check
         if(!SPIFFS.begin()) {
+                #ifdef DEBUG
                 Serial.println("An Error has occurred while mounting SPIFFS");
+                #endif
                 return;
         }
-        else Serial.println("SPIFFS Mounted correctly");
+        else{
+          #ifdef DEBUG
+          Serial.println("SPIFFS Mounted correctly");
+          #endif
+        }
 /////Code zum Testen
-        // CleanMemoryWifi(START_DATA_WIFI);
+         //CleanMemoryWifi(START_DATA_WIFI);
         //
         // char *abc="FRITZ!Box 6591 Cable SW";
         // char *abcd="62407078731195560963";
@@ -152,7 +160,7 @@ void setup() {
         do {
                 switch (current_case) {
                 case CHECK_MEM: {//Guck ssid und passwort im Speichern nach
-                  //Serial.println("Guck ssid und passwort im Speichern nach");
+                        //Serial.println("Guck ssid und passwort im Speichern nach");
                         if (DataWifiMeM(START_DATA_WIFI)) { //SSID und PASS gefunden
 
                                 temporalssid2=RetrieveSSID(START_DATA_WIFI);
@@ -160,7 +168,9 @@ void setup() {
                                 current_case = NET_FROM_MEM;
                         }
                         else{  //SSID und PASS nicht gefunden
+                                #ifdef DEBUG
                                 Serial.println("No SSID nor Pass found it.");
+                                #endif
                                 current_case = MODE_WSTAT;
                         }
                         break;
@@ -205,7 +215,9 @@ void setup() {
                         while (WiFi.status() != WL_CONNECTED)
                         {
                                 delay(1000);
+                                #ifdef DEBUG
                                 Serial.println("Connecting to WiFi...");
+                                #endif
                                 k++;
                                 if(k == 10) ESP.restart();
                         }
@@ -217,10 +229,9 @@ void setup() {
                         SavePASSW(START_DATA_WIFI, temporalpw2);
 
                         strcpy(mode_to_print,messages_conn[0]);
-                        strcpy(network_to_print,temporalssid2);
-                        //strcpy(ip_to_print,messages_conn[3]);
-                        String temporal = String(messages_conn[3])+WiFi.localIP().toString();
-                        strcpy(ip_to_print,temporal.c_str());
+                        strcpy(network_to_print,WiFi.SSID().c_str());
+                        String tempora2 = String(messages_conn[3]) + WiFi.localIP().toString();
+                        strcpy(ip_to_print,tempora2.c_str() );
                         strcpy(blynk_status,messages_conn[5]);
                         // free(temporalssid2);
                         // free(temporalpw2);
@@ -240,7 +251,9 @@ void setup() {
                         }
 
                         if(WiFi.status() != WL_CONNECTED) { //Internetverbindung konnte nicht hergestellt wurde
+                                #ifdef DEBUG
                                 Serial.println("SSID or Password incorrect...");
+                                #endif
                                 CleanMemoryWifi(START_DATA_WIFI);
                                 WiFi.disconnect(true);
                                 current_case = MODE_WSTAT;
@@ -248,14 +261,11 @@ void setup() {
                         else{//Internetverbindung hat erfolgich hergestellt
                                 Blynk.begin(auth, temporalssid2, temporalpw2);
                                 configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-                                /////////
                                 strcpy(mode_to_print,messages_conn[0]);
-                                Serial.println(WiFi.SSID().c_str());
                                 strcpy(network_to_print,WiFi.SSID().c_str());
-                                String tempora =String(messages_conn[3])+ WiFi.localIP().toString();
-                                strcpy(ip_to_print,tempora.c_str() );
+                                String tempora2 = String(messages_conn[3]) + WiFi.localIP().toString();
+                                strcpy(ip_to_print,tempora2.c_str() );
                                 strcpy(blynk_status,messages_conn[5]);
-                                // strcat(ip_to_print, temporal);
                                 //free(temporal);
                                 //free(temporalssid2);
                                 //free(temporalpw2);
@@ -271,20 +281,12 @@ void setup() {
                         IPAddress gateway(10, 10, 10, 1);
                         IPAddress subnet(255, 255, 255, 240);
                         WiFi.softAPConfig( local_ip,  gateway,  subnet);
-                        //WiFi.mode(WIFI_MODE_AP);
                         WiFi.softAP(messages_conn[2]);
-                        //Serial.println(WiFi.softAPIP());
-                        // if(!MDNS.begin("weatherstat")) {
-                        //         Serial.println("Error starting mDNS");
-                        //         return;
-                        // }
                         strcpy(mode_to_print,messages_conn[1]);
-                        strcpy(network_to_print,messages_conn[2]);
-                        //strcpy(ip_to_print,messages_conn[3]);
-                        String temporal = String(messages_conn[3])+WiFi.softAPIP().toString();
-                        strcpy(ip_to_print,temporal.c_str());
+                        strcpy(network_to_print,WiFi.softAPSSID().c_str()) ;
+                        String tempora2 = String(messages_conn[3]) + WiFi.softAPIP().toString();
+                        strcpy(ip_to_print,tempora2.c_str() );
                         strcpy(blynk_status,messages_conn[6]);
-
                         dateString="Time na.";
                         fechaString = "Date na.";
                         Network_status = WIRELESS_ACCESS_POINT;
@@ -299,8 +301,10 @@ void setup() {
 
 /////Initialize BME680 Sensor
         iaqSensor.begin(BME680_I2C_ADDR_SECONDARY, Wire);
+        #ifdef DEBUG
         output = "\nBSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix);
         Serial.println(output);
+        #endif
         checkIaqSensorStatus();
         iaqSensor.setState(bsec_config_iaq);
         checkIaqSensorStatus();
@@ -323,15 +327,6 @@ void setup() {
         };
         iaqSensor.updateSubscription(sensorList, Number_susc_sens, BSEC_SAMPLE_RATE_LP);
         checkIaqSensorStatus();
-/////Task configuration FreeRTOS
-        xTaskCreatePinnedToCore(loop1,"Task_1",20000,NULL,1,&Task1,1);
-        delay(500);
-        xTaskCreatePinnedToCore(loop2,"Task_2",15000,NULL,1,&Task2,0);
-        delay(500);
-        xTaskCreatePinnedToCore(loop3,"Task_3",20000,NULL,1,&Task3,0);
-        delay(500);
-        xTaskCreatePinnedToCore(loop4,"Task_4",15000,NULL,1,&Task4,0);
-        delay(500);
 
 /////Web Handlers
         server.on("/", handleRoot);
@@ -353,10 +348,7 @@ void setup() {
 /////Initialize Server
         server.onNotFound(handleWebRequests);
         server.begin();// begin server
-
 /////Define starting time
-        // if(WiFi.status() == WL_CONNECTED)
-        //         start_time = getDatum(IN_LETTERS) +" "+getZeit();
         // #ifdef DEBUG
         // if(WiFi.status() == WL_CONNECTED)
         //         Serial.println(start_time);
@@ -365,11 +357,19 @@ void setup() {
         pinMode(MHZ19_PWM_PIN, INPUT);        //MHZ19 PWM Pin als Eingang konfigurieren
         attachInterrupt(MHZ19_PWM_PIN, isr, CHANGE);
 ////// Printing status of the conection
-        Serial.println(" ");
         Serial.println(mode_to_print);
         Serial.println(network_to_print);
         Serial.println(ip_to_print);
         Serial.println(blynk_status);
+        /////Task configuration FreeRTOS
+        xTaskCreatePinnedToCore(loop1,"Task_1",20000,NULL,1,&Task1,1);
+        delay(500);
+        xTaskCreatePinnedToCore(loop2,"Task_2",15000,NULL,1,&Task2,0);
+        delay(500);
+        xTaskCreatePinnedToCore(loop3,"Task_3",20000,NULL,1,&Task3,0);
+        delay(500);
+        xTaskCreatePinnedToCore(loop4,"Task_4",15000,NULL,1,&Task4,0);
+        delay(500);
 }
 /////////////################# LOOP Executed in Core 1 #####################////////////////
 void loop(){
@@ -520,14 +520,19 @@ void checkIaqSensorStatus(void)
 {
         if (iaqSensor.status != BSEC_OK) {
                 if (iaqSensor.status < BSEC_OK) {
+
                         output = "BSEC error code : " + String(iaqSensor.status);
+                        #ifdef DEBUG
                         Serial.println(output);
+                        #endif
                         vTaskDelay(1000);
                         //for (;;);
                         //errLeds(); /* Halt in case of failure */
                 } else {
                         output = "BSEC warning code : " + String(iaqSensor.status);
+                        #ifdef DEBUG
                         Serial.println(output);
+                        #endif
                         vTaskDelay(1000);
                 }
         }
@@ -535,11 +540,15 @@ void checkIaqSensorStatus(void)
         if (iaqSensor.bme680Status != BME680_OK) {
                 if (iaqSensor.bme680Status < BME680_OK) {
                         output = "BME680 error code : " + String(iaqSensor.bme680Status);
+                        #ifdef DEBUG
                         Serial.println(output);
+                        #endif
                         vTaskDelay(1000);
                 } else {
                         output = "BME680 warning code : " + String(iaqSensor.bme680Status);
+                        #ifdef DEBUG
                         Serial.println(output);
+                        #endif
                         vTaskDelay(1000);
                 }
         }
@@ -552,8 +561,9 @@ void loadState(void)
         if (EEPROM.read(0) == BSEC_MAX_STATE_BLOB_SIZE) {
                 // Existing state in EEPROM
                 //Serial.println(dateString);
+                #ifdef DEBUG
                 Serial.println("Reading state from EEPROM");
-
+                #endif
                 for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++) {
                         bsecState[i] = EEPROM.read(i + 1);
                         //Serial.print(bsecState[i], HEX);
@@ -564,7 +574,9 @@ void loadState(void)
                 checkIaqSensorStatus();
         } else {
                 // Erase the EEPROM with zeroes
+                #ifdef DEBUG
                 Serial.println("Erasing EEPROM");
+                #endif
 
                 for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE + 1; i++)
                         EEPROM.write(i, 0);
@@ -595,8 +607,9 @@ void updateState(void)
                 iaqSensor.getState(bsecState);
                 checkIaqSensorStatus();
                 //Serial.println(dateString);
+                #ifdef DEBUG
                 Serial.println("Writing state to EEPROM");
-
+                #endif
                 for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++) {
                         EEPROM.write(i + 1, bsecState[i]);
                         //Serial.print(bsecState[i], HEX);
@@ -703,7 +716,9 @@ void handleWebRequests()
         }
 
         server.send(404, "text/plain", message);
+        #ifdef DEBUG
         Serial.println(message);
+        #endif
 }
 /////////////################# funciton  #####################////////////////
 void dataSensorRequest(){
