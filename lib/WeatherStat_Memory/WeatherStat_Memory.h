@@ -19,5 +19,6 @@ char* RetrievePASSW(uint8_t anfang );
 void SaveSSID(uint8_t anfang,char* ssid);
 void SavePASSW(uint8_t anfang,char* passw);
 void CleanMemoryWifi(uint8_t anfang);
+size_t DataWifiMeM(uint8_t anfang);
 
  #endif   // that goes allways it closes the library
