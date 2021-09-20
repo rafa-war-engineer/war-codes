@@ -63,9 +63,9 @@ uint8_t oldInputCaseVar=0;
  */
 uint8_t wifiCaseVar=0;
 uint16_t ii=0;
-uint16_t xTotalPix=tft.width();         //240
-uint16_t yTotalPix=tft.height();        //320
-//possible sizes: 1,2,4,5,8,10
+uint16_t xTotalPix=tft.width();         //number of pixels in x-direction: 240
+uint16_t yTotalPix=tft.height();        //number of pixels in y-direction: 320
+//possible sizes of the writing: 1,2,4,5,8,10 (at these sizes whole letters fit into the screen)
 uint16_t letterN[6]={40,20,10,8,5,4};   //number of letters that fit into the screen in x and y for different sizes
 uint16_t xLetterPix[6];                 //number of pixels per letter in x for different sizes
 uint16_t yLetterPix[6];                 //number of pixels per letter in y for different sizes
@@ -77,7 +77,7 @@ uint16_t touchX=0;                      //touch position in x in pixels
 uint16_t touchY=0;                      //touch position in y in pixels
 uint16_t touchXraw=0;                   //raw touch value in x
 uint16_t touchYraw=0;                   //raw touch value in y
-uint16_t boxEdgeX=30;
+uint16_t boxEdgeX=30;                   //general edge of the box in x
 uint16_t leftBoxEdgeX=30;               // edge of left box in x
 uint16_t rightBoxEdgeX=150;             //edge of right box in x
 uint16_t boxEdgeY=232;                  //edge of boxes in y
@@ -86,6 +86,7 @@ uint16_t boxY=32;                       //size of boxes in y
 unsigned long oldTime_ms=0;             //help variable for time
 unsigned long newTime_ms=0;             //help variable for time
 unsigned long oldTimeTouch_ms=0;        //help variable for debouncing time
+unsigned long debounceTime=100;        //help variable for debouncing time
 unsigned long timeChange=0;             //help variable for time
 char textContent[120];                  //help variable for printing
 uint8_t LEDsize=20;                     //size of LED to show air quality
@@ -107,7 +108,7 @@ uint16_t keyboardX=70;                  //key width
 uint16_t keyboardY=50;                  //key height
 uint16_t horKeybLine[5]={700,1400,2100,2800,3500};    //horizontal lines between keyboards
 uint16_t verKeybLine[4]={300,1450,2600,3750};         //vertical lines between keyboards
-char keyChars[2][12][9];                                  //char on keys in one 3D-matrix
+char keyChars[2][12][9];                                  //chars on keys in one 3D-matrix, further info in screen_setup
 uint8_t j=0;                                          //help variable for indices
 uint8_t k=0;                                          //help variable for indices
 uint8_t l=0;                                          //help variable for indices
@@ -117,13 +118,11 @@ char helpChar[2];                                     //help Variable for charac
 char outputVar[40];                                   //output of the keyboard
 bool enteringDoneFlag=LOW;                            //Flag to show that entering of Wifi name and password is done
 uint16_t triangleEdge[2];                             //edges of the arrows shown on the keyboard
-uint8_t cursorPosX=0;
-uint8_t cursorPosY=0;
-uint16_t wifiTDistance=375;
-uint8_t wifiPageN=0;
-uint8_t slotNo=0;
-float wifiGap=3.5;
-wifiData1 wifiData_to_main;
+uint16_t wifiTDistance=375;                           //touch pixel distance between wifi networks in selection
+uint8_t wifiPageN=0;                                  //current number of page in the wifi list
+uint8_t slotNo=0;                                     //chosen slot of the wifi list on current page
+float wifiGap=3.5;                                    //varying gap between wifi networks depending on the number of lines
+wifiData1 wifiData_to_main;                           //data to give to main
 ////////////////////////////////////////////////////////////////////////
 //initializing
 
@@ -142,7 +141,8 @@ void screen_setup(){
         tft.print(textContent);
         delay(5000);
 
-        //calculating xLetterPix and yLetterPix
+        /*calculating the number of letters for different sizes of writing in x-
+        (xLetterPix) and y-direction (yLetterPix)*/
         for( ii=0; ii<6; ii++) {
                 xLetterPix[ii]=xTotalPix/letterN[ii];
         }
@@ -150,7 +150,8 @@ void screen_setup(){
                 yLetterPix[ii]=yTotalPix/letterN[ii];
         }
 
-        //initializing all the characters in the matrix
+        /*initializing all the characters in the keyboard matrix of the two keyboards in the form
+        keyChars[keyboard number][key]*/
         strcpy(keyChars[0][0],"1 ");
         strcpy(keyChars[0][1],"2ABC");
         strcpy(keyChars[0][2],"3DEF");
@@ -178,10 +179,11 @@ void screen_setup(){
 }
 ///////////////////////////
 
+/*main routine of the screen being called in every loop iteration during operation*/
 bool screenHandler(clima_data data_var) {
         bool wifiSetupFlag=LOW;
         struct wifiData my_wifiData;
-        //detecting a touch and locating it
+        //detecting a touch and locating it - not debounced
         if(ts.tirqTouched()) {
                 if(ts.touched()) {
                         TS_Point p=ts.getPoint();
@@ -209,7 +211,7 @@ bool screenHandler(clima_data data_var) {
                 timeChange=2000;
                 oldTime_ms=millis();
                 break;
-        //Wait without touch
+        //Wait without detecting touch
         case 1:
                 if(millis()-oldTime_ms>=timeChange) {
                         switch(oldscreenCaseVar) {
@@ -235,7 +237,6 @@ bool screenHandler(clima_data data_var) {
                         tft.setCursor((letterN[2]-data_var.date_for_LCD.length())*xLetterPix[2]/2,5*yLetterPix[1]);
                         tft.print(data_var.date_for_LCD);
                         tft.setTextSize(5);
-                        //time needs to be added as char array
                         tft.setCursor((letterN[3]-data_var.time_for_LCD.length())*xLetterPix[3]/2,10*yLetterPix[1]);
                         tft.print(data_var.time_for_LCD);
                         oldDataShowCaseVar=dataShowCaseVar;
@@ -247,7 +248,6 @@ bool screenHandler(clima_data data_var) {
                         tft.fillScreen(ILI9341_BLACK);
                         tft.setTextColor(ILI9341_WHITE);
                         tft.setTextSize(2);
-                        //IAQ needs to be added as integer
                         IAQ=data_var.iaq_for_LCD;
                         strcpy(textContent,"Indoor Air Quality");
                         if(IAQ>=0&&IAQ<=50) {
@@ -565,34 +565,6 @@ bool screenHandler(clima_data data_var) {
                         oldMenuCaseVar=menuCaseVar;
                         menuCaseVar=2;
                         break;
-                //Enter Wifi name
-                case 5:
-                        strcpy(wifiName,keyboard(oldWifiName));
-                        break;
-                //Prepare to enter Wifi Password
-                case 6:
-                        if(enteringDoneFlag) {
-                                enteringDoneFlag=LOW;
-                        }
-                        tft.fillScreen(ILI9341_BLACK);
-                        tft.setTextColor(ILI9341_WHITE);
-                        tft.setTextSize(2);
-                        tft.setCursor(0,0);
-                        tft.print("Enter Password:");
-                        menuCaseVar=7;
-                        inputCaseVar=0;
-                        strcpy(oldWifiPassword,wifiPassword);
-                        break;
-                //Enter Wifi password
-                case 7:
-                        strcpy(wifiPassword,keyboard(oldWifiPassword));
-                        newTime_ms=millis();
-                        break;
-                //Successful?
-                case 8:
-                        my_wifiData.wifiChangeFlag=HIGH;
-                        menuCaseVar=11;
-                        break;
                 case 9:
                         if(millis()-oldTime_ms>3000) {
                                 inputCaseVar=0;
@@ -838,6 +810,7 @@ wifiData1 wifiSetup(char wifiList[40][40], uint8_t wifiNoT){
                 }
         }
         switch(wifiCaseVar) {
+        //setting up some things
         case 0:
                 wifiData_to_main.wifiNameNo_for_main=0;
                 wifiData_to_main.wifiChangeFlag=LOW;
@@ -851,6 +824,7 @@ wifiData1 wifiSetup(char wifiList[40][40], uint8_t wifiNoT){
                 }
                 wifiCaseVar=1;
                 break;
+        //print wifi networks
         case 1:
                 tft.fillScreen(ILI9341_BLACK);
                 tft.setTextColor(ILI9341_WHITE);
@@ -879,6 +853,7 @@ wifiData1 wifiSetup(char wifiList[40][40], uint8_t wifiNoT){
                 wifiCaseVar=2;
                 oldTime_ms=millis();
                 break;
+        //detect and interprete debounced touch
         case 2:
                 slotNo=0;
                 if(touchFlag==HIGH) {
@@ -925,6 +900,7 @@ wifiData1 wifiSetup(char wifiList[40][40], uint8_t wifiNoT){
                         }
                 }
                 break;
+        //prepare entering of password
         case 3:
                 tft.fillScreen(ILI9341_BLACK);
                 tft.setTextColor(ILI9341_WHITE);
@@ -935,10 +911,12 @@ wifiData1 wifiSetup(char wifiList[40][40], uint8_t wifiNoT){
                 inputCaseVar=0;
                 strcpy(oldWifiPassword,wifiPassword);
                 break;
+        //enter password
         case 4:
                 strcpy(wifiPassword,keyboard(oldWifiPassword));
                 newTime_ms=millis();
                 break;
+        //verifying, if wifi entered
         case 5:
                 strcpy(wifiData_to_main.wifiPassword_for_main,wifiPassword);
                 wifiData_to_main.wifiChangeFlag=HIGH;
@@ -953,6 +931,7 @@ wifiData1 wifiSetup(char wifiList[40][40], uint8_t wifiNoT){
                         menuCaseVar=11;
                 }
                 break;
+        //verifying, if use without wifi entered
         case 6:
                 strcpy(wifiData_to_main.wifiPassword_for_main,"");
                 wifiData_to_main.wifiChangeFlag=HIGH;
