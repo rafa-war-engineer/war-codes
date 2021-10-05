@@ -88,10 +88,10 @@ const char *messages_co2_description[] = {
  };
 
 const char *messages_conn[] = {
-   "-Connected to network: ",
-   "-Wireless Access point: ",
-   " WheatherStat_AP",
-   "-IP: ",
+   "Connected to Network",
+   "Not connected to\nNetwork\nWireless Access\npoint:",
+   "WheatherStat_AP",
+   "IP: ",
    "10.10.10.10",
    "Blynk App available",
    "Blynk App not available"

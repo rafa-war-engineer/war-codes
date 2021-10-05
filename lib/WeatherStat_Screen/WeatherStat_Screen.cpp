@@ -497,6 +497,7 @@ bool screenHandler(clima_data data_var) {
                                 touchedFlag=HIGH;
                         }
                         //deciding what to do depending on where the touch happenend
+                        timeChange=100;
                         if(millis()-oldTimeTouch_ms>=timeChange&&touchedFlag==HIGH) {
                                 if(touchX>=leftBoxEdgeX&&touchX<=leftBoxEdgeX+boxX&&touchY>=boxEdgeY&&touchY<=boxEdgeY+boxY) {
                                         switch(oldMenuCaseVar) {
@@ -515,7 +516,7 @@ bool screenHandler(clima_data data_var) {
                                 else if(touchX>=rightBoxEdgeX&&touchX<=rightBoxEdgeX+boxX&&touchY>=boxEdgeY&&touchY<=boxEdgeY+boxY) {
                                         switch(oldMenuCaseVar) {
                                         case 0:
-                                                menuCaseVar=3;
+                                                menuCaseVar=5;
                                                 break;
                                         case 1:
                                                 menuCaseVar=4;
@@ -565,10 +566,23 @@ bool screenHandler(clima_data data_var) {
                         oldMenuCaseVar=menuCaseVar;
                         menuCaseVar=2;
                         break;
+                case 5:
+                        tft.fillScreen(ILI9341_BLACK);
+                        tft.setCursor(0,0);
+                        tft.print("Loading...");
+                        menuCaseVar=3;
+                        break;
                 case 9:
                         if(millis()-oldTime_ms>3000) {
-                                inputCaseVar=0;
-                                menuCaseVar=0;
+                                switch(oldMenuCaseVar) {
+                                      case 10:
+                                              menuCaseVar=12;
+                                              break;
+                                      case 12:
+                                              inputCaseVar=0;
+                                              menuCaseVar=0;
+                                              break;
+                                }
                                 oldTime_ms=millis();
                         }
                         break;
@@ -580,6 +594,7 @@ bool screenHandler(clima_data data_var) {
                         tft.setCursor(0,3*xLetterPix[1]);
 // message, was entering Wifi successful as string
                         tft.print(textContent);
+                        oldMenuCaseVar=menuCaseVar;
                         menuCaseVar=9;
                         oldTime_ms=millis();
                         my_wifiData.wifiChangeFlag=LOW;
@@ -595,6 +610,19 @@ bool screenHandler(clima_data data_var) {
                                 strcpy(textContent,"Successful.");
                         }
                         break;
+                case 12:
+                        ////// Printing status of the conection
+                        tft.setTextColor(ILI9341_WHITE);
+                        tft.fillScreen(ILI9341_BLACK);
+                        tft.setTextSize(2);
+                        tft.setCursor(0,0);
+                        tft.println(data_var.printMode);
+                        tft.println(data_var.printNetw);
+                        tft.println(data_var.printIP);
+                        tft.println(data_var.statusBlynk);
+                        oldMenuCaseVar=menuCaseVar;
+                        menuCaseVar=9;
+                        oldTime_ms=millis();
                 }
                 if(millis()-oldTime_ms>=30000) {
                         menuCaseVar=0;
@@ -944,9 +972,24 @@ wifiData1 wifiSetup(char wifiList[40][40], uint8_t wifiNoT){
                 if(menuCaseVar==3) {
                         menuCaseVar=11;
                 }
+                else {
+
+                }
                 break;
         }
         return(wifiData_to_main);
+}
+
+
+void showWifiDataOnScreen(clima_data dataToShow){
+        tft.setTextColor(ILI9341_WHITE);
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setTextSize(2);
+        tft.setCursor(0,0);
+        tft.println(dataToShow.printMode);
+        tft.println(dataToShow.printNetw);
+        tft.println(dataToShow.printIP);
+        tft.println(dataToShow.statusBlynk);
 }
 
 //Welcome///////////////////////////////////////////////////////////
