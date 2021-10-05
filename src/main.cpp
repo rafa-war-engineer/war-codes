@@ -38,7 +38,7 @@
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
 #define STATE_SAVE_PERIOD UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
-//#define DEBUG
+#define DEBUG
 #define MAX_NUMBER_NETWORKS 10
 /////////////################# variables #####################////////////////
 const byte led_gpio = 13; // the PWM pin the LED is attached to
@@ -78,7 +78,7 @@ void IRAM_ATTR isr();
 /////////////################# Web Specific #####################///////
 WiFiClient my_client;
 WebServer server(80);
-char mode_to_print[25];
+char mode_to_print[50];
 char network_to_print[40];  //Network connect to print in he Screen
 char ip_to_print[20];       //IP to print in the Screen
 char blynk_status[25];
@@ -206,37 +206,40 @@ void setup() {
                                 else current_case = MODE_WSTAT; //"Ohne Internet" wurde ausgewählt
                         }
                         else current_case = CHECK_MEM; //Timeout erreicht
-
                         break;
                 }
                 case NET_FROM_USR: {//Der Benutzer hat ein Netwerk ausgewählt
                         WiFi.begin(temporalssid2, temporalpw2);
                         int k = 0;
-                        while (WiFi.status() != WL_CONNECTED)
+                        while (WiFi.status() != WL_CONNECTED&&k<12)
                         {
                                 delay(1000);
                                 #ifdef DEBUG
                                 Serial.println("Connecting to WiFi...");
                                 #endif
                                 k++;
-                                if(k == 10) ESP.restart();
+                                if(k == 10) {
+                                  current_case=MODE_WSTAT;
+                                  k=12;
+                                }
                         }
+                        if (current_case!=MODE_WSTAT){
+                                Blynk.begin(auth, temporalssid2, temporalpw2);
+                                configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+                                //GUARDA EN MEMORIA
+                                SaveSSID(START_DATA_WIFI, temporalssid2);
+                                SavePASSW(START_DATA_WIFI, temporalpw2);
 
-                        Blynk.begin(auth, temporalssid2, temporalpw2);
-                        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-                        //GUARDA EN MEMORIA
-                        SaveSSID(START_DATA_WIFI, temporalssid2);
-                        SavePASSW(START_DATA_WIFI, temporalpw2);
-
-                        strcpy(mode_to_print,messages_conn[0]);
-                        strcpy(network_to_print,WiFi.SSID().c_str());
-                        String tempora2 = String(messages_conn[3]) + WiFi.localIP().toString();
-                        strcpy(ip_to_print,tempora2.c_str() );
-                        strcpy(blynk_status,messages_conn[5]);
-                        // free(temporalssid2);
-                        // free(temporalpw2);
-                        current_case = GO;
-                        Network_status = CONNECTED_TO_INTERNET;
+                                strcpy(mode_to_print,messages_conn[0]);
+                                strcpy(network_to_print,WiFi.SSID().c_str());
+                                String tempora2 = String(messages_conn[3]) + WiFi.localIP().toString();
+                                strcpy(ip_to_print,tempora2.c_str() );
+                                strcpy(blynk_status,messages_conn[5]);
+                                // free(temporalssid2);
+                                // free(temporalpw2);
+                                current_case = GO;
+                                Network_status = CONNECTED_TO_INTERNET;
+                        }
                         break;
                 }
                 case NET_FROM_MEM: {
@@ -270,7 +273,7 @@ void setup() {
                                 //free(temporalssid2);
                                 //free(temporalpw2);
                                 Network_status = CONNECTED_TO_INTERNET;
-                                current_case = GO;
+//                                current_case = GO;
                         }
 
                         break;
@@ -294,6 +297,7 @@ void setup() {
                         break;
                 }
                 case GO: {
+                        Serial.println("We entered GO!");
                         break;
                 }
                 }
@@ -357,10 +361,16 @@ void setup() {
         pinMode(MHZ19_PWM_PIN, INPUT);        //MHZ19 PWM Pin als Eingang konfigurieren
         attachInterrupt(MHZ19_PWM_PIN, isr, CHANGE);
 ////// Printing status of the conection
+        strcpy(var_data.printMode,mode_to_print);
+        strcpy(var_data.printNetw,network_to_print);
+        strcpy(var_data.printIP,ip_to_print);
+        strcpy(var_data.statusBlynk,blynk_status);
+        showWifiDataOnScreen(var_data);
         Serial.println(mode_to_print);
         Serial.println(network_to_print);
         Serial.println(ip_to_print);
         Serial.println(blynk_status);
+        delay(5000);
         /////Task configuration FreeRTOS
         xTaskCreatePinnedToCore(loop1,"Task_1",20000,NULL,1,&Task1,1);
         delay(500);
@@ -423,9 +433,9 @@ void loop1(void *parameter) {
                         wifiFlag=LOW;
                         char *temporalssid2;//define una apuntador vacio de una cadena
                         char *temporalpw2;
-
+                        int wifiNum = wifiData_in_main1.wifiNameNo_for_main;
                         //Serial.println("          -inside   if(wifiData_in_main.wifiChangeFlag");
-                        temporalssid2=wifiNameList[wifiData_in_main1.wifiNameNo_for_main];
+                        temporalssid2=wifiNameList[wifiNum];
 
                         temporalpw2 = wifiData_in_main1.wifiPassword_for_main;
                         Serial.print("name: ");
@@ -434,20 +444,94 @@ void loop1(void *parameter) {
                         Serial.println(temporalpw2);
                         //strcpy(temporalpw2,wifiData_in_main1.wifiPassword_for_main);
                         ////// Wifi Configs
-                        WiFi.begin(temporalssid2, temporalpw2);
-                        char j=0;
-                        while ((WiFi.status() != WL_CONNECTED)&&j<4)
-                        {
-                                delay(1000);
-                                Serial.println("Connecting to WiFi..."+String(j));
-                                j++;
+                        int wifiStat;
+                        wifiStat=WiFi.status();
+                        Serial.println(wifiStat);
+                        switch (wifiStat) {
+                            case WL_CONNECTED:
+                                  {
+                                      WiFi.disconnect();
+                                      int k=0;
+                                      while ((WiFi.status() != WL_DISCONNECTED)&&k<10)
+                                      {
+                                            delay(1000);
+                                            Serial.println("Disconnecting from WiFi..."+String(k));
+                                            k++;
+                                      }
+                                      Blynk.disconnect();
+                                  }
+                                  break;
+                            case WL_DISCONNECTED:
+                                  {
+                                  int k=0;
+                                  bool softAPdiscoFlag=LOW;
+                                  while(softAPdiscoFlag==LOW&&k<4){
+                                        softAPdiscoFlag=WiFi.softAPdisconnect(true);
+                                        Serial.println("Disconnecting from softAP");
+                                        delay(1000);
+                                        k++;
+                                  }
+                                  }
+                                  break;
+
                         }
-                        if(j<4) {
-                                var_data.wifiSuccessfulFlag=HIGH;
+                        if(wifiNum<number_net){
+                              WiFi.begin(temporalssid2, temporalpw2);
+                              char j=0;
+                              while ((WiFi.status() != WL_CONNECTED)&&j<7)
+                              {
+                                      delay(1000);
+                                      Serial.println("Connecting to WiFi..."+String(j));
+                                      j++;
+                              }
+                              if(j<7) {
+                                      var_data.wifiSuccessfulFlag=HIGH;
+                                      Blynk.begin(auth, temporalssid2, temporalpw2);
+                                      configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+                                      //GUARDA EN MEMORIA
+                                      SaveSSID(START_DATA_WIFI, temporalssid2);
+                                      SavePASSW(START_DATA_WIFI, temporalpw2);
+
+                                      strcpy(mode_to_print,messages_conn[0]);
+                                      strcpy(network_to_print,WiFi.SSID().c_str());
+                                      String tempora2 = String(messages_conn[3]) + WiFi.localIP().toString();
+                                      strcpy(ip_to_print,tempora2.c_str() );
+                                      strcpy(blynk_status,messages_conn[5]);
+                                      // free(temporalssid2);
+                                      // free(temporalpw2);
+                                      Network_status = CONNECTED_TO_INTERNET;
+                              }
+                              else{
+                                      var_data.wifiSuccessfulFlag=LOW;
+                                      Serial.println("We are here.");
+                              }
                         }
-                        else{
-                                var_data.wifiSuccessfulFlag=LOW;
+                        if(var_data.wifiSuccessfulFlag==LOW||wifiNum==number_net){
+                              Serial.println("Trying to work without Wifi.");
+                              IPAddress local_ip(10, 10, 10, 10);
+                              IPAddress gateway(10, 10, 10, 1);
+                              IPAddress subnet(255, 255, 255, 240);
+                              WiFi.softAPConfig( local_ip,  gateway,  subnet);
+                              WiFi.softAP(messages_conn[2]);
+                              strcpy(mode_to_print,messages_conn[1]);
+                              strcpy(network_to_print,WiFi.softAPSSID().c_str()) ;
+                              String tempora2 = String(messages_conn[3]) + WiFi.softAPIP().toString();
+                              strcpy(ip_to_print,tempora2.c_str() );
+                              strcpy(blynk_status,messages_conn[6]);
+                              dateString="Time na.";
+                              fechaString = "Date na.";
+                              Network_status = WIRELESS_ACCESS_POINT;
+                              if(wifiNum==number_net){
+                                    var_data.wifiSuccessfulFlag=HIGH;
+                              }
+                              else{
+                                    var_data.wifiSuccessfulFlag=LOW;
+                              }
                         }
+                        strcpy(var_data.printMode,mode_to_print);
+                        strcpy(var_data.printNetw,network_to_print);
+                        strcpy(var_data.printIP,ip_to_print);
+                        strcpy(var_data.statusBlynk,blynk_status);
                 }
                 else{
                         var_data.wifiSuccessfulFlag=LOW;

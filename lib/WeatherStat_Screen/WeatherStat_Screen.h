@@ -59,6 +59,10 @@ struct clima_data{
   int pres_for_LCD;
   int humi_for_LCD;
   bool wifiSuccessfulFlag=LOW;
+  char printMode[50];
+  char printNetw[40];
+  char printIP[20];
+  char statusBlynk[25];
 };
 
 struct wifiData{
@@ -82,6 +86,7 @@ void drawBox(bool leftOrRight, char* boxContent);
 void keyOfKeyboard(uint16_t xNumber, uint16_t yNumber, char* upperText, char* lowerText);
 char* keyboard(char* inputVar);
 wifiData1 wifiSetup(char wifiList[40][40],uint8_t wifiNoT);
+void showWifiDataOnScreen(clima_data dataToShow);
 
 ///////////////////////////////////////////////////////
 
