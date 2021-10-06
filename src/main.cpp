@@ -35,10 +35,11 @@
 #include "WeatherStat_Messages.h"
 #include "WeatherStat_Screen.h"
 #include "WeatherStat_Memory.h"
+#include "WeatherStat_Zambretti.h"
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
 #define STATE_SAVE_PERIOD UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
-#define DEBUG
+//#define DEBUG
 #define MAX_NUMBER_NETWORKS 10
 /////////////################# variables #####################////////////////
 const byte led_gpio = 13; // the PWM pin the LED is attached to
@@ -55,11 +56,13 @@ float varTemp, varPres, varHumi, varGasR, varCo2E, varBVoc, varGasP,varSiaq,varI
 int varIaqAcc, varStab, varRunI,   varSiaqAcc, varCo2eAcc;
 int varBVocAcc, varGasPAcc;
 float varCo2M=400.0;
+int Zamb=0;
 String cadena_envio,dateString,start_time,fechaString;
 volatile int segundos=0;
 uint8_t number_net=0;
 char wifiNameList[40][40];
 /////////////################# functions #####################////////////////
+void loop5(void *parameter);
 void loop4(void *parameter);
 void loop3(void *parameter);
 void loop2(void *parameter);
@@ -107,6 +110,7 @@ bool settingWifiOld=LOW;
 wifiData wifiData_in_main;
 wifiData1 wifiData_in_main1;
 /////////////################# Arduino sh%& #####################///////////////
+TaskHandle_t Task5;
 TaskHandle_t Task4;
 TaskHandle_t Task3;
 TaskHandle_t Task2;
@@ -138,11 +142,11 @@ void setup() {
         }
         else{
           #ifdef DEBUG
-          Serial.println("SPIFFS Mounted correctly");
+                Serial.println("SPIFFS Mounted correctly");
           #endif
         }
 /////Code zum Testen
-         //CleanMemoryWifi(START_DATA_WIFI);
+        //CleanMemoryWifi(START_DATA_WIFI);
         //
         // char *abc="FRITZ!Box 6591 Cable SW";
         // char *abcd="62407078731195560963";
@@ -219,17 +223,17 @@ void setup() {
                                 #endif
                                 k++;
                                 if(k == 10) {
-                                  current_case=MODE_WSTAT;
-                                  k=12;
+                                        current_case=MODE_WSTAT;
+                                        k=12;
                                 }
                         }
-                        if (current_case!=MODE_WSTAT){
+                        if (current_case!=MODE_WSTAT) {
                                 Blynk.begin(auth, temporalssid2, temporalpw2);
                                 configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
                                 //GUARDA EN MEMORIA
                                 SaveSSID(START_DATA_WIFI, temporalssid2);
                                 SavePASSW(START_DATA_WIFI, temporalpw2);
-
+                                SaveMonth(getMonat());
                                 strcpy(mode_to_print,messages_conn[0]);
                                 strcpy(network_to_print,WiFi.SSID().c_str());
                                 String tempora2 = String(messages_conn[3]) + WiFi.localIP().toString();
@@ -272,6 +276,7 @@ void setup() {
                                 //free(temporal);
                                 //free(temporalssid2);
                                 //free(temporalpw2);
+                                SaveMonth(getMonat());
                                 Network_status = CONNECTED_TO_INTERNET;
 //                                current_case = GO;
                         }
@@ -286,7 +291,7 @@ void setup() {
                         WiFi.softAPConfig( local_ip,  gateway,  subnet);
                         WiFi.softAP(messages_conn[2]);
                         strcpy(mode_to_print,messages_conn[1]);
-                        strcpy(network_to_print,WiFi.softAPSSID().c_str()) ;
+                        strcpy(network_to_print,WiFi.softAPSSID().c_str());
                         String tempora2 = String(messages_conn[3]) + WiFi.softAPIP().toString();
                         strcpy(ip_to_print,tempora2.c_str() );
                         strcpy(blynk_status,messages_conn[6]);
@@ -366,10 +371,10 @@ void setup() {
         strcpy(var_data.printIP,ip_to_print);
         strcpy(var_data.statusBlynk,blynk_status);
         showWifiDataOnScreen(var_data);
-        Serial.println(mode_to_print);
-        Serial.println(network_to_print);
-        Serial.println(ip_to_print);
-        Serial.println(blynk_status);
+        // Serial.println(mode_to_print);
+        // Serial.println(network_to_print);
+        // Serial.println(ip_to_print);
+        // Serial.println(blynk_status);
         delay(5000);
         /////Task configuration FreeRTOS
         xTaskCreatePinnedToCore(loop1,"Task_1",20000,NULL,1,&Task1,1);
@@ -380,6 +385,9 @@ void setup() {
         delay(500);
         xTaskCreatePinnedToCore(loop4,"Task_4",15000,NULL,1,&Task4,0);
         delay(500);
+        xTaskCreatePinnedToCore(loop5,"Task_5",20000,NULL,1,&Task5,0);
+        delay(500);
+
 }
 /////////////################# LOOP Executed in Core 1 #####################////////////////
 void loop(){
@@ -448,85 +456,85 @@ void loop1(void *parameter) {
                         wifiStat=WiFi.status();
                         Serial.println(wifiStat);
                         switch (wifiStat) {
-                            case WL_CONNECTED:
-                                  {
-                                      WiFi.disconnect();
-                                      int k=0;
-                                      while ((WiFi.status() != WL_DISCONNECTED)&&k<10)
-                                      {
-                                            delay(1000);
-                                            Serial.println("Disconnecting from WiFi..."+String(k));
-                                            k++;
-                                      }
-                                      Blynk.disconnect();
-                                  }
-                                  break;
-                            case WL_DISCONNECTED:
-                                  {
-                                  int k=0;
-                                  bool softAPdiscoFlag=LOW;
-                                  while(softAPdiscoFlag==LOW&&k<4){
+                        case WL_CONNECTED:
+                        {
+                                WiFi.disconnect();
+                                int k=0;
+                                while ((WiFi.status() != WL_DISCONNECTED)&&k<10)
+                                {
+                                        delay(1000);
+                                        Serial.println("Disconnecting from WiFi..."+String(k));
+                                        k++;
+                                }
+                                Blynk.disconnect();
+                        }
+                        break;
+                        case WL_DISCONNECTED:
+                        {
+                                int k=0;
+                                bool softAPdiscoFlag=LOW;
+                                while(softAPdiscoFlag==LOW&&k<4) {
                                         softAPdiscoFlag=WiFi.softAPdisconnect(true);
                                         Serial.println("Disconnecting from softAP");
                                         delay(1000);
                                         k++;
-                                  }
-                                  }
-                                  break;
+                                }
+                        }
+                        break;
 
                         }
-                        if(wifiNum<number_net){
-                              WiFi.begin(temporalssid2, temporalpw2);
-                              char j=0;
-                              while ((WiFi.status() != WL_CONNECTED)&&j<7)
-                              {
-                                      delay(1000);
-                                      Serial.println("Connecting to WiFi..."+String(j));
-                                      j++;
-                              }
-                              if(j<7) {
-                                      var_data.wifiSuccessfulFlag=HIGH;
-                                      Blynk.begin(auth, temporalssid2, temporalpw2);
-                                      configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-                                      //GUARDA EN MEMORIA
-                                      SaveSSID(START_DATA_WIFI, temporalssid2);
-                                      SavePASSW(START_DATA_WIFI, temporalpw2);
+                        if(wifiNum<number_net) {
+                                WiFi.begin(temporalssid2, temporalpw2);
+                                char j=0;
+                                while ((WiFi.status() != WL_CONNECTED)&&j<7)
+                                {
+                                        delay(1000);
+                                        Serial.println("Connecting to WiFi..."+String(j));
+                                        j++;
+                                }
+                                if(j<7) {
+                                        var_data.wifiSuccessfulFlag=HIGH;
+                                        Blynk.begin(auth, temporalssid2, temporalpw2);
+                                        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+                                        //GUARDA EN MEMORIA
+                                        SaveSSID(START_DATA_WIFI, temporalssid2);
+                                        SavePASSW(START_DATA_WIFI, temporalpw2);
 
-                                      strcpy(mode_to_print,messages_conn[0]);
-                                      strcpy(network_to_print,WiFi.SSID().c_str());
-                                      String tempora2 = String(messages_conn[3]) + WiFi.localIP().toString();
-                                      strcpy(ip_to_print,tempora2.c_str() );
-                                      strcpy(blynk_status,messages_conn[5]);
-                                      // free(temporalssid2);
-                                      // free(temporalpw2);
-                                      Network_status = CONNECTED_TO_INTERNET;
-                              }
-                              else{
-                                      var_data.wifiSuccessfulFlag=LOW;
-                                      Serial.println("We are here.");
-                              }
+                                        strcpy(mode_to_print,messages_conn[0]);
+                                        strcpy(network_to_print,WiFi.SSID().c_str());
+                                        String tempora2 = String(messages_conn[3]) + WiFi.localIP().toString();
+                                        strcpy(ip_to_print,tempora2.c_str() );
+                                        strcpy(blynk_status,messages_conn[5]);
+                                        // free(temporalssid2);
+                                        // free(temporalpw2);
+                                        Network_status = CONNECTED_TO_INTERNET;
+                                }
+                                else{
+                                        var_data.wifiSuccessfulFlag=LOW;
+                                        Serial.println("We are here.");
+                                }
                         }
-                        if(var_data.wifiSuccessfulFlag==LOW||wifiNum==number_net){
-                              Serial.println("Trying to work without Wifi.");
-                              IPAddress local_ip(10, 10, 10, 10);
-                              IPAddress gateway(10, 10, 10, 1);
-                              IPAddress subnet(255, 255, 255, 240);
-                              WiFi.softAPConfig( local_ip,  gateway,  subnet);
-                              WiFi.softAP(messages_conn[2]);
-                              strcpy(mode_to_print,messages_conn[1]);
-                              strcpy(network_to_print,WiFi.softAPSSID().c_str()) ;
-                              String tempora2 = String(messages_conn[3]) + WiFi.softAPIP().toString();
-                              strcpy(ip_to_print,tempora2.c_str() );
-                              strcpy(blynk_status,messages_conn[6]);
-                              dateString="Time na.";
-                              fechaString = "Date na.";
-                              Network_status = WIRELESS_ACCESS_POINT;
-                              if(wifiNum==number_net){
-                                    var_data.wifiSuccessfulFlag=HIGH;
-                              }
-                              else{
-                                    var_data.wifiSuccessfulFlag=LOW;
-                              }
+                        if(var_data.wifiSuccessfulFlag==LOW||wifiNum==number_net) {
+                                Serial.println("Trying to work without Wifi.");
+                                IPAddress local_ip(10, 10, 10, 10);
+                                IPAddress gateway(10, 10, 10, 1);
+                                IPAddress subnet(255, 255, 255, 240);
+                                WiFi.softAPConfig( local_ip,  gateway,  subnet);
+                                WiFi.softAP(messages_conn[2]);
+                                strcpy(mode_to_print,messages_conn[1]);
+                                strcpy(network_to_print,WiFi.softAPSSID().c_str());
+                                String tempora2 = String(messages_conn[3]) + WiFi.softAPIP().toString();
+                                strcpy(ip_to_print,tempora2.c_str() );
+                                strcpy(blynk_status,messages_conn[6]);
+                                dateString="Time na.";
+                                fechaString = "Date na.";
+                                Network_status = WIRELESS_ACCESS_POINT;
+                                if(wifiNum==number_net) {
+                                        var_data.wifiSuccessfulFlag=HIGH;
+                                }
+                                else{
+                                        var_data.wifiSuccessfulFlag=LOW;
+                                }
                         }
                         strcpy(var_data.printMode,mode_to_print);
                         strcpy(var_data.printNetw,network_to_print);
@@ -581,6 +589,79 @@ void loop4(void *parameter) {
                 vTaskDelay(3000);
         }
 }
+/////////////################# LOOP5 Forecast  #####################////////////////
+void loop5(void *parameter) {
+        int sec=30;//regresar a 59
+        int min=9;//regresar a 9
+        int monate=0;
+        //int presion=1000;
+        int Presiones[10];
+
+        while(1) {
+                if(sec==60)//regresar a 60
+                {
+                        sec = 0;
+                        min++;
+                }
+                else sec++;
+
+
+
+                if(min==10) ///cambiar aqui, poner 10 (minutos)
+                {
+                     #ifdef DEBUG
+                        Serial.println("CICLO CADA 10 MINUTOS " + getZeit());
+                     #endif
+                        if(Network_status==CONNECTED_TO_INTERNET) //lee el mes ya sea de internet o memoria
+                                monate = getMonat();
+                        else
+                                monate = SavedMonth();
+                        // #ifdef DEBUG
+                        // Serial.println(" Presion actual falsa: "+String(presion));
+                        // #endif
+                        PushPressure(int(varPres));//mete la presion actual en la fila
+
+                        if(ForecastReady())// ya se guardaron 10 presiones?
+                        {
+                             #ifdef DEBUG
+                                Serial.println("    <<<< Forecast ready");
+                                Serial.print("    "+String(GetNumbePress())+" - ");
+                             #endif
+                                GetSavedPressures(Presiones);
+                            #ifdef DEBUG
+                                for (uint8_t i = 0; i < 10; i++) {
+                                        Serial.print(String(Presiones[i])+" ");
+                                }
+                                Serial.println(" ");
+                             #endif
+                                Zamb=calc_zambretti((Presiones[0]+Presiones[1]+Presiones[2])/3,(Presiones[7]+Presiones[8]+Presiones[9])/3, monate)-1; // Aprox average of last measurement in 30 min, and 90-120 ago.
+                                #ifdef DEBUG
+                                Serial.println(Zamb, DEC);
+                                #endif
+                        }
+                        else// no se han guardado 10 presiones...
+                        {
+                             #ifdef DEBUG
+                                Serial.println("   <<<< " + String(weather_forecast[26]) );
+                                Serial.print("    "+String(GetNumbePress())+" - ");
+                                GetSavedPressures(Presiones);
+                                for (uint8_t i = 0; i < 10; i++) {
+                                        Serial.print(String(Presiones[i])+" ");
+                                }
+                                Serial.println(" ");
+                             #endif
+                        }
+
+                        //if(presion==1090) presion=1000;//esto es de prueba
+                        // presion++;//solo aumenta el valor de la presion a lo pendejo
+                        // Serial.println(presion, DEC);
+                        min = 0;//resetea el timer!
+                        //Serial.println(" ");
+                }
+                vTaskDelay(1000);//aguanta 1 segundo we
+        }
+}
+/////////////################# funciton  #####################////////////////
 /////////////################# funciton  #####################////////////////
 void IRAM_ATTR isr() {
 
@@ -852,10 +933,14 @@ void JsonStringFormat(){
         cadena_envio += messages_accuracy[varIaqAcc]+ SpacerJS;//IAQ Accuracy
         cadena_envio += messages_impact[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ Impact
         cadena_envio += messages_saction[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ Suggested actions
-        cadena_envio += messages_iaqcolors[iaq_Index2Level(varIaq)]+ SpacerJS;
-        cadena_envio += messages_quality[iaq_Index2Level(varIaq)];//+ SpacerJS;
+        cadena_envio += messages_iaqcolors[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ color
+        cadena_envio += messages_quality[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ  calidad
+        cadena_envio += weather_forecast[Zamb]+ SpacerJS;//Forecast//19
+        //cadena_envio += "aqui va forescast"+ SpacerJS;//Forecast//19
+        cadena_envio += "holo";//por si acaso//20
+        // cadena_envio += "oh_no_me_da_amsiedad";
+        cadena_envio += StopJS;//Finalizer JSON chain
         //cadena_envio += start_time;//+ SpacerJS;
-        cadena_envio += StopJS;//Finalizer JSON string
 
 }
 /////////////################# funciton to print values on screnn  #####################////////////////
