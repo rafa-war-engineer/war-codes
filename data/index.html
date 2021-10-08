@@ -65,7 +65,6 @@
     <!-- ------- -->
   </nav>
 
-
   <!-- START MODAL ABOUT -->
   <div class="modal fade" id="myModalAbout">
     <div class="modal-dialog">
@@ -133,9 +132,14 @@
 
   </div>
 
-  <!-- <p><small class="text-muted" id="start_time">-----</small></p> -->
+
+
+
+
+
 
   <!-- ALERT BAR END -->
+
   <!-- QUITAR, EN LO QUE DESCUBRO COMO CAMBIAR EL COLOR -->
   <!-- <input type="hidden" id="iaq_color"> -->
   <!-- ************************************************ -->
@@ -143,58 +147,65 @@
   <div class="container">
     <div class="col d-flex justify-content-center">
 
-<div class="card-columns mx-auto d-flex justify-content-center col-8">
+      <div class="card-columns mx-auto d-flex justify-content-center col-8">
 
 
 
-      <div class="card-columns">
+        <div class="card-columns">
 
 
-        <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
-          <div class="card-header text-white bg-dark">
-            <h2> <small>Forecast</small></h2>
-          </div>
-
-          <div class="card-body text-dark">
-            <div class="forecast">
-                Next 12H: Cloudy
+          <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
+            <div class="card-header text-white bg-dark">
+              <h2> <small>Temperature</small></h2>
             </div>
-            <div class="temp">
-               <img src="https://s5.postimg.cc/yzcm7htyb/image.png" alt="" width="40">
-               <h2 id="temp">
+
+            <div class="card-body text-dark">
+              <div class="forecast">
+                Next 12H: <span id="forecast">
+              </div>
+              <div class="temp">
+                <!-- <img src="https://s5.postimg.cc/yzcm7htyb/image.png" alt="" width="40"> -->
+                <img src="" id="dinamyc_image" alt="" width="60">
+                <!-- <h3 id="weather_img"> -->
+                <h2 id="temp">
+              </div>
+              <img src="aachen.png" alt="" width="120">
+              <!-- <h2 class="card-title" id="forecast"></h2> original -->
+              <h2 class="card-title"></h2>
+
             </div>
-            <img src="aachen.png" alt="" width="120">
-            <!-- <h2 class="card-title" id="forecast"></h2> original -->
-            <h2 class="card-title"></h2>
-
-                    </div>
           </div>
 
 
-        <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
-          <div class="card-header text-white bg-dark">
-            <h2> <small>Pressure</small></h2>
+          <!-- <input type="hidden" id="weather_img"> -->
+          <img id="weather_img">
+
+
+
+          <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
+            <div class="card-header text-white bg-dark">
+              <h2> <small>Pressure</small></h2>
+            </div>
+            <div class="card-body text-dark">
+              <h2 class="card-title" id="pres"></h2>
+            </div>
           </div>
-          <div class="card-body text-dark">
-            <h2 class="card-title" id="pres"></h2>
+
+
+
+          <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
+            <div class="card-header text-white bg-dark">
+              <h2> <small>Rel. Humidity</small></h2>
+            </div>
+            <div class="card-body text-dark">
+              <h2 class="card-title" id="hum"></h2>
+            </div>
           </div>
+
         </div>
-
-
-
-        <div class="card text-center border-dark mt-3 mb-3" style="max-width: 18rem;">
-          <div class="card-header text-white bg-dark">
-            <h2> <small>Rel. Humidity</small></h2>
-          </div>
-          <div class="card-body text-dark">
-            <h2 class="card-title" id="hum"></h2>
-          </div>
-        </div>
-
-</div>
-</div>
       </div>
     </div>
+  </div>
 
 
 
@@ -209,15 +220,15 @@
           </div>
           <div class="card-body text-dark">
             <h2 class="card-title" id="iaq_number">xxx</h2>
-            <p id="iaq_quality">kkk</p>
+            <p id="iaq_quality">xxx</p>
             <input type="hidden" id="iaq_color">
             <!-- <p id="iaq_quality">xxx</p> -->
             <p><small class="text-muted" id="iaq_accuracy">xxx</small></p>
             <!-- <h6 id="iaq_accuracy">ssf</h6> -->
             <h6><strong>Impact:</strong></h6>
-            <p id="iaq_impact">fdgfd</p>
+            <p id="iaq_impact">xxx</p>
             <h6><strong>Action suggested:</strong></h6>
-            <p id="iaq_suggested">fdgfd</p>
+            <p id="iaq_suggested">xxx</p>
             <a href="#" class="card-link" data-toggle="modal" data-target="#myModalIAQ">Info</a>
             <a href="#gotocharts" class="card-link" id="gotoIAQChart">Chart</a>
           </div>
@@ -230,7 +241,7 @@
           <div class="card-body text-dark">
             <h2 class="card-title" id="co2_mess">xxx</h2>
             <!-- <h5 class="card-title" id="co2_stimation">xxx</h5> -->
-            <h6><strong>Description:</strong></h6>
+            <h6><strong>Action suggested:</strong></h6>
             <p id="co2_sugested">lllllll</p>
             <p class="card-title" id="co2_stimation">xxx</p>
             <!-- <h6 class="card-title" id="co2_accuracy">xxx</h6> -->
@@ -473,7 +484,13 @@
       </a>
     </div>
   </div>
-  <!-- Termina carousel --
+  <!-- Termina carousel -->
+
+
+  <!-- <input type="hidden" id="textdummy"> -->
+  <!-- <p><small class="text-muted" id="textdummy">xxx</small></p> -->
+
+
   <!-- Empieza footer -->
   <div class="container-fluid pb-0 mb-0 justify-content-center text-light ">
 
@@ -856,8 +873,13 @@
       }
       elem = document.querySelector('#iaq_quality');
       array[2] != 'nan' ? elem.innerHTML = array[18] : elem.innerHTML = '---------';
-      //elem = document.querySelector('#start_time');
-      //array[2] != 'nan' ? elem.innerHTML = array[19] : elem.innerHTML = '---------';
+      elem = document.querySelector('#forecast');
+      array[2] != 'nan' ? elem.innerHTML = array[19] : elem.innerHTML = '---------';
+      elem = document.querySelector('#weather_img');
+      array[2] != 'nan' ? elem.innerHTML = array[20] : elem.innerHTML = '---------';
+      const image = document.getElementById("dinamyc_image");
+      image.src = array[20];
+
       // elem = document.querySelector('#textdummy');
       // array[2] != 'nan' ? elem.innerHTML = 'D'+ array[19] : elem.innerHTML = '---------';
     });
