@@ -131,6 +131,28 @@ int calc_zambretti(int curr_pressure, int prev_pressure, int mon){
                         return 26;
         }
 }
+
+int forecast2image(int Zambretti, int month)
+{
+        int res=0;
+        Zambretti++;
+        if (Zambretti<=2)
+                res = 0;
+        if(Zambretti>=3 && Zambretti<=4)
+                res = 2;
+        if(Zambretti>=5 && Zambretti<=13)
+                res = 3;
+        if(Zambretti>=14 && Zambretti<=20)
+                res = 6;
+        if(Zambretti>=21 && Zambretti<=24)
+                res = 7;
+        if(Zambretti>=25 && Zambretti<=26)
+                res = 9;
+        if( month<3 && Zambretti >=21)
+                res = 8;
+
+                return res;
+}
 // String ohno;
 //
 // ohno="⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n";
@@ -197,7 +219,7 @@ void PushPressure(int current_pressure){
         EEPROM.write(START_DATA_PRESSURE, pres_actual);//pon la presion actual en la primera posicion
         EEPROM.commit();
 
-        if (current_index>=10){
+        if (current_index>=10) {
                 if(current_index>10)  {
                         EEPROM.write(COUNTER_SAMPLES_PRESS, 10);//procura siempre sea 9 el numero max de datos
                         EEPROM.commit();

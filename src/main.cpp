@@ -39,13 +39,14 @@
 /////////////################# directives #####################////////////////
 #define Number_susc_sens 11
 #define STATE_SAVE_PERIOD UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
-//#define DEBUG
+//#define DEBUG //Uncommet for verbose behaviour on the serial monitor
 #define MAX_NUMBER_NETWORKS 10
 /////////////################# variables #####################////////////////
 const byte led_gpio = 13; // the PWM pin the LED is attached to
 int PWMchannel = 0;
 int i = 0;
 char flag=0;
+int contador=0;
 uint8_t bsec_config_iaq[] = {
 #include "config/generic_33v_3s_4d/bsec_iaq.txt"
 };
@@ -169,6 +170,9 @@ void setup() {
 
                                 temporalssid2=RetrieveSSID(START_DATA_WIFI);
                                 temporalpw2=RetrievePASSW(START_DATA_WIFI);
+                                #ifdef DEBUG
+                                Serial.println("SSID & found it.");
+                                #endif
                                 current_case = NET_FROM_MEM;
                         }
                         else{  //SSID und PASS nicht gefunden
@@ -247,6 +251,9 @@ void setup() {
                         break;
                 }
                 case NET_FROM_MEM: {
+                  #ifdef DEBUG
+                  Serial.println("Connect from mem.");
+                  #endif
                         //Serial.println("Conectado desde memoria");
                         WiFi.begin(temporalssid2, temporalpw2);
                         int k = 0;
@@ -266,6 +273,9 @@ void setup() {
                                 current_case = MODE_WSTAT;
                         }
                         else{//Internetverbindung hat erfolgich hergestellt
+                          #ifdef DEBUG
+                          Serial.println("connection sucess");
+                          #endif
                                 Blynk.begin(auth, temporalssid2, temporalpw2);
                                 configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
                                 strcpy(mode_to_print,messages_conn[0]);
@@ -278,7 +288,7 @@ void setup() {
                                 //free(temporalpw2);
                                 SaveMonth(getMonat());
                                 Network_status = CONNECTED_TO_INTERNET;
-//                                current_case = GO;
+                                current_case = GO;
                         }
 
                         break;
@@ -616,10 +626,10 @@ void loop5(void *parameter) {
                                 monate = getMonat();
                         else
                                 monate = SavedMonth();
-                        // #ifdef DEBUG
-                        // Serial.println(" Presion actual falsa: "+String(presion));
-                        // #endif
-                        PushPressure(int(varPres));//mete la presion actual en la fila
+                        #ifdef DEBUG
+                        Serial.println(" Presion: "+String(varPres/100)+" - "+String(int(varPres/100)));
+                        #endif
+                        PushPressure(int(varPres/100));//mete la presion actual en la fila
 
                         if(ForecastReady())// ya se guardaron 10 presiones?
                         {
@@ -937,11 +947,13 @@ void JsonStringFormat(){
         cadena_envio += messages_quality[iaq_Index2Level(varIaq)]+ SpacerJS;//IAQ  calidad
         cadena_envio += weather_forecast[Zamb]+ SpacerJS;//Forecast//19
         //cadena_envio += "aqui va forescast"+ SpacerJS;//Forecast//19
-        cadena_envio += "holo";//por si acaso//20
+        cadena_envio += weather_image[forecast2image( Zamb , getMonat() )];//por si acaso//20
         // cadena_envio += "oh_no_me_da_amsiedad";
         cadena_envio += StopJS;//Finalizer JSON chain
         //cadena_envio += start_time;//+ SpacerJS;
-
+        // Serial.println("zamb = "+String(contador));
+        // if(contador==25) contador=0;
+        // else  contador++;
 }
 /////////////################# funciton to print values on screnn  #####################////////////////
 

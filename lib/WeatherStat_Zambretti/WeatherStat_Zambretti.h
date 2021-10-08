@@ -43,6 +43,49 @@ const char *weather_forecast[] = {
 };
 
 
+// const char *weather_image[] = {
+// "https://i.postimg.cc/nCTzpWkm/1.png",//sunny 0
+// "https://i.postimg.cc/QFtMtq4y/2.png",//sun + cloud 1
+// "https://i.postimg.cc/PCR5880r/3.png",//cloud + sun 2
+// "https://i.postimg.cc/5HQN52M5/4.png",//cloud rain + sun 3
+// "https://i.postimg.cc/SjhCKwW1/5.png",//cloud 4
+// "https://i.postimg.cc/Hj958BzY/6.png",//cloud + cloud 5
+// "https://i.postimg.cc/KRcTPBpn/7.png",//rain 6
+// "https://i.postimg.cc/ykfZvx22/8.png",//rain + rain 7
+// "https://i.postimg.cc/PCP8chjJ/9.png",//snowy 8
+// "https://i.postimg.cc/182N1TmH/10.png",//stormy 9
+// "https://i.postimg.cc/CZ8nhNdV/11.png"//windy 10
+// };
+
+const char *weather_image[] = {
+"1.png",//sunny 0
+"2.png",//sun + cloud 1
+"3.png",//cloud + sun 2
+"4.png",//cloud rain + sun 3
+"5.png",//cloud 4
+"6.png",//cloud + cloud 5
+"7.png",//rain 6
+"8.png",//rain + rain 7
+"9.png",//snowy 8
+"10.png",//stormy 9
+"11.png"//windy 10
+};
+
+// const char *weather_image[] = {
+// "\"https://i.postimg.cc/nCTzpWkm/1.png\"",//sunny 0
+// "\"https://i.postimg.cc/QFtMtq4y/2.png\"",//sun + cloud 1
+// "\"https://i.postimg.cc/PCR5880r/3.png\"",//cloud + sun 2
+// "\"https://i.postimg.cc/5HQN52M5/4.png\"",//cloud rain + sun 3
+// "\"https://i.postimg.cc/SjhCKwW1/5.png\"",//cloud 4
+// "\"https://i.postimg.cc/Hj958BzY/6.png\"",//cloud + cloud 5
+// "\"https://i.postimg.cc/KRcTPBpn/7.png\"",//rain 6
+// "\"https://i.postimg.cc/ykfZvx22/8.png\"",//rain + rain 7
+// "\"https://i.postimg.cc/PCP8chjJ/9.png\"",//snowy 8
+// "\"https://i.postimg.cc/182N1TmH/10.png\"",//stormy 9
+// "\"https://i.postimg.cc/CZ8nhNdV/11.png\""//windy 10
+// };
+
+
 int calc_zambretti(int curr_pressure, int prev_pressure, int mon);
 bool ForecastReady(void);
 void ResetForecastData(void);
@@ -51,6 +94,7 @@ uint8_t SavedMonth(void);
 void PushPressure(int current_pressure);
 void GetSavedPressures(int *arreglo);
 int GetNumbePress(void);
+int forecast2image(int Zambretti, int mes);
 
 // #define START_DATA_PRESSURE (141)
 // #define START_DATA_WIFI (162)
